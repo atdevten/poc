@@ -155,16 +155,24 @@ poc/
 
 ```mermaid
 flowchart TD
-    T1[Room Done] --> FQ[fillEmptyQueuesFromLobby\nFill idle queues from lobby immediately]
-    T1 --> TR
-    T2[Scheduler 60s] --> TR
-    T3[Emergency Added] --> TR
+    T1[Room Done] --> FQ[fillEmptyQueuesFromLobby\nFill idle + empty-queue rooms from lobby]
+    T1 --> LOOP
+    T2[Scheduler 60s] --> PAR
+    T3[Emergency Added] --> PAR
     T4[Manual] --> TR
     T5[Patient added to lobby] --> FQ
 
+    PAR[Promise.all — all room types in parallel]
+    PAR --> LOOP
+
+    LOOP[Loop up to maxRebalancePerPatient times per room type]
+    LOOP --> TR
+
     TR[tryRebalance destRoom]
-    TR --> SR{Same-type rooms\nexist?}
-    SR -- No --> END1[Exit — no-op]
+    TR --> TS{timeSavedMin > 0?}
+    TS -- No --> END1[Exit — no-op]
+    TS -- Yes --> SR{Same-type rooms\nexist?}
+    SR -- No --> END1
     SR -- Yes --> LD{Load delta >\nthreshold?}
     LD -- No --> END1
     LD -- Yes --> FC[filterCandidates overloadedRoom\n• status = WAITING\n• type = normal\n• rebalanceCount < maxRebalancePerPatient\n• queuePosition ≠ 1]
@@ -180,13 +188,17 @@ flowchart TD
     SG -- Staff confirms --> AP
     SG -- Ignored / Expired --> END2[Exit — no move]
     AP --> MV[Move patient:\nremove fromRoom queue\ninsert toRoom queue\nrebalanceCount++]
-    MV --> BC[Broadcast:\nROOM_UPDATED ×2\nREBALANCE_APPLIED\nNOTIFICATION]
+    MV --> BC[Broadcast:\nROOM_UPDATED ×2\nREBALANCE_APPLIED\nNOTIFICATION info]
+    BC --> LOOP
 ```
 
 ## Notes
 
 - State is **in-memory** — restart clears all patients and queues
-- `rebalanceCount` resets on restart; configurable max via `maxRebalancePerPatient` setting
-- `fillEmptyQueuesFromLobby` runs immediately on every lobby change — no 60s wait
+- `rebalanceCount` resets on restart; configurable max via `maxRebalancePerPatient` setting (default 3)
+- `fillEmptyQueuesFromLobby` runs immediately on every lobby change — no 60s wait; handles both idle and active rooms with empty queues
+- Scheduler processes all room types in **parallel** via `Promise.all`
+- Each trigger moves up to `maxRebalancePerPatient` patients per room type, stopping early when imbalance is resolved
+- Rebalance skipped if `timeSavedMin === 0` — no pointless moves
 - Settings changes apply to **new** routing decisions only; active patients unaffected
 - Gemini call has **8s timeout** with 2 retries on 429 — always falls back gracefully
