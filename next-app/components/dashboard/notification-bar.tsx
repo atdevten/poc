@@ -22,20 +22,19 @@ function AISuggestionItem({ notif, onDismiss, onApply }: NotifItemProps) {
   useEffect(() => {
     if (notif.autoDismiss) {
       ref.current = setInterval(() => {
-        setCount((c) => {
-          if (c <= 1) {
-            clearInterval(ref.current!)
-            onDismiss(notif.id)
-            return 0
-          }
-          return c - 1
-        })
+        setCount((c) => (c <= 1 ? 0 : c - 1))
       }, 1000)
     }
     return () => {
       if (ref.current) clearInterval(ref.current)
     }
-  }, [notif.id, notif.autoDismiss, onDismiss])
+  }, [notif.id, notif.autoDismiss])
+
+  useEffect(() => {
+    if (count === 0) {
+      onDismiss(notif.id)
+    }
+  }, [count, notif.id, onDismiss])
 
   const countColor = count > 5 ? "#10B981" : count > 2 ? "#F59E0B" : "#EF4444"
 
@@ -46,6 +45,9 @@ function AISuggestionItem({ notif, onDismiss, onApply }: NotifItemProps) {
         <span className="font-mono text-[11px] text-[#94A3B8]">{notif.timestamp}</span>
       </div>
       <p className="mt-1 font-sans text-[13px] leading-snug text-[#0F172A]">{notif.message}</p>
+      {notif.timeSavedMin != null && notif.timeSavedMin > 0 && (
+        <p className="mt-1 font-mono text-[12px] font-medium text-[#16A34A]">⏱ Save ~{notif.timeSavedMin}m</p>
+      )}
       {notif.aiReason && (
         <p className="mt-1 font-sans text-[12px] italic leading-snug text-[#64748B]">{notif.aiReason}</p>
       )}

@@ -10,7 +10,6 @@ export type PatientStatus =
   | "IN_CONSULTATION"
   | "DONE_ROOM"
   | "COMPLETED"
-  | "NO_SHOW"
   | "CANCELLED"
 
 export interface Patient {
@@ -23,7 +22,7 @@ export interface Patient {
   currentRoomId: string | null
   completedRooms: string[]
   remainingRooms: string[]
-  rebalancedToday: boolean
+  rebalanceCount: number
   queuePosition: number | null
   medicalReason: string
 }
@@ -53,11 +52,11 @@ export interface Settings {
   rebalanceThresholdMin: number
   maxQueuePerRoom: number
   mode: "auto" | "suggest"
-  noShowTimeoutMin: number
   emergencySoundAlert: boolean
   emergencyBannerAlert: boolean
   allowVipRebalance: boolean
   allowNormalRebalance: boolean
+  maxRebalancePerPatient: number
   aiPrompt: string
   roomTypes: RoomType[]
 }
@@ -103,11 +102,11 @@ const defaultSettings: Settings = {
   rebalanceThresholdMin: 1,
   maxQueuePerRoom: 5,
   mode: "suggest",
-  noShowTimeoutMin: 15,
   emergencySoundAlert: true,
   emergencyBannerAlert: true,
   allowVipRebalance: false,
   allowNormalRebalance: true,
+  maxRebalancePerPatient: 3,
   aiPrompt: "- Pick exactly 1 patient\n- Prefer longer wait time (fairness)\n- Prefer higher queue position number (less disruptive to move)\n- If two candidates have wait times within 5 minutes of each other, prefer the one with a more urgent or serious medical reason\n- Balance all three factors — do not pick by a single criterion blindly\n- Write a detailed and natural reason in English comparing wait times, queue position, and medical urgency (e.g., 'Although wait times are equal, Laura Davis is selected due to her urgent pre-surgery status and highest queue position, minimizing disruption to the flow of the source room')",
   roomTypes: [
     { id: "bmi", name: "BMI Check", icon: "🏃", openTime: "08:00", closeTime: "17:00", order: 1, avgDurationMin: 5 },
@@ -162,7 +161,7 @@ function makePatient(
     currentRoomId: null,
     completedRooms,
     remainingRooms: allRoomTypes.filter((rt) => !completedRooms.includes(rt)),
-    rebalancedToday: false,
+    rebalanceCount: 0,
     queuePosition: null,
     medicalReason,
   }

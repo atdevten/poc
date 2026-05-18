@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { state } from "../store/state"
 import { getNextFromQueue, getFromLobby, insertToLobby, removeFromLobby } from "../engine/queue"
 import { tryRebalance } from "../engine/rebalance"
-import { checkPeriodicRebalance } from "../engine/scheduler"
+import { checkPeriodicRebalance, fillEmptyQueuesFromLobby } from "../engine/scheduler"
 import { broadcast, serializeRoom, serializePatient } from "../ws/broadcast"
 
 const app = new Hono()
@@ -32,6 +32,7 @@ app.post("/done/:roomId", async (c) => {
     broadcast("NOTIFICATION", { kind: "success", message: `${patient.name} completed all rooms`, detail: null })
   } else {
     insertToLobby(state, patient)
+    fillEmptyQueuesFromLobby()
     broadcast("LOBBY_UPDATED", { patients: state.lobby.map(serializePatient), count: state.lobby.length })
   }
 
@@ -41,7 +42,8 @@ app.post("/done/:roomId", async (c) => {
     room.queue.shift()
     assignPatient(room, next)
     broadcast("ROOM_UPDATED", { roomId: room.id, room: serializeRoom(room) })
-    // Trigger rebalance for all OTHER rooms in background
+    // Queue is now shorter — fill it from lobby immediately
+    fillEmptyQueuesFromLobby()
     void setImmediate(() => checkPeriodicRebalance(room.id))
     return c.json({ completedPatient, nextPatient: next, rebalanceSuggest: null })
   }

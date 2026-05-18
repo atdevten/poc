@@ -58,8 +58,7 @@ function nowTs() {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
 }
 
-let notifSeq = 0
-function makeId() { return `notif-${++notifSeq}` }
+function makeId() { return `notif-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -110,7 +109,7 @@ export function useRealtimeState() {
         addNotif({
           type: "emergency",
           timestamp: ts,
-          message: `🚨 Khẩn cấp: ${patient.name} vừa được thêm`,
+          message: `🚨 Emergency: ${patient.name} just added`,
           autoDismiss: false,
         })
         break
@@ -136,12 +135,15 @@ export function useRealtimeState() {
           timestamp: ts,
           message: `AI suggests moving ${p.patientName}: ${p.fromRoomName} → ${p.toRoomName}`,
           aiReason: p.reason,
+          timeSavedMin: p.timeSavedMin,
           countdown: p.expiresIn,
           autoDismiss: true,
           rebalancePayload: {
             patientId: p.patientId,
             fromRoomId: p.fromRoomId,
             toRoomId: p.toRoomId,
+            reason: p.reason,
+            aiUsed: p.aiUsed,
           }
         })
         break
@@ -197,7 +199,10 @@ export function useRealtimeState() {
       const ws = new WebSocket(`${WS_URL}/ws`)
       wsRef.current = ws
 
-      ws.onopen = () => { if (!destroyed) setIsConnected(true) }
+      ws.onopen = () => {
+        if (destroyed) { ws.close(); return }
+        setIsConnected(true)
+      }
       ws.onclose = () => {
         if (destroyed) return
         setIsConnected(false)
@@ -205,6 +210,7 @@ export function useRealtimeState() {
       }
       ws.onerror = () => ws.close()
       ws.onmessage = (e) => {
+        if (destroyed) return
         try {
           const event = JSON.parse(e.data as string) as WSEvent
           handleWSEvent(event)
@@ -217,7 +223,14 @@ export function useRealtimeState() {
     return () => {
       destroyed = true
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
-      wsRef.current?.close()
+      const ws = wsRef.current
+      if (ws) {
+        ws.onopen = null
+        ws.onclose = null
+        ws.onerror = null
+        ws.onmessage = null
+        if (ws.readyState === WebSocket.OPEN) ws.close()
+      }
     }
   }, [handleWSEvent])
 
@@ -242,11 +255,11 @@ export function useRealtimeState() {
   const applyNotification = useCallback(async (id: string) => {
     const notif = notifications.find((n) => n.id === id)
     if (notif?.rebalancePayload) {
-      const { patientId, fromRoomId, toRoomId } = notif.rebalancePayload
+      const { patientId, fromRoomId, toRoomId, reason, aiUsed } = notif.rebalancePayload
       await fetch(`${API_URL}/api/rebalance/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ patientId, fromRoomId, toRoomId }),
+        body: JSON.stringify({ patientId, fromRoomId, toRoomId, reason, aiUsed }),
       })
     }
     setNotifications((prev) => prev.filter((n) => n.id !== id))
@@ -282,6 +295,8 @@ export function useRealtimeState() {
         patientId: suggestion.patientId,
         fromRoomId: suggestion.fromRoomId,
         toRoomId: suggestion.toRoomId,
+        reason: suggestion.reason,
+        aiUsed: suggestion.aiUsed,
       }),
     })
     setPendingSuggestions((prev) =>

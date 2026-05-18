@@ -17,14 +17,14 @@ app.post("/settings", async (c) => {
 })
 
 app.post("/rebalance/apply", async (c) => {
-  const body = await c.req.json<{ patientId: string; fromRoomId: string; toRoomId: string }>()
+  const body = await c.req.json<{ patientId: string; fromRoomId: string; toRoomId: string; reason?: string; aiUsed?: boolean }>()
 
-  const { patientId, fromRoomId, toRoomId } = body
+  const { patientId, fromRoomId, toRoomId, reason, aiUsed } = body
   if (!patientId || !fromRoomId || !toRoomId) {
     return c.json({ error: "Missing fields" }, 400)
   }
 
-  const result = applyRebalance(state, patientId, fromRoomId, toRoomId, "Manual apply by coordinator", false, "manual")
+  const result = applyRebalance(state, patientId, fromRoomId, toRoomId, reason ?? "Manual apply by coordinator", aiUsed ?? false, "manual")
   if (!result.applied) {
     return c.json({ error: "Could not apply rebalance" }, 400)
   }

@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import { state } from "../store/state"
 import type { Patient } from "../store/state"
 import { calculateLoad, insertToLobby, insertToQueue } from "../engine/queue"
+import { fillEmptyQueuesFromLobby } from "../engine/scheduler"
 import { broadcast, serializeRoom, serializePatient } from "../ws/broadcast"
 
 const app = new Hono()
@@ -68,6 +69,7 @@ app.post("/patients/add", async (c) => {
 
   // All rooms of first type full — put in lobby
   insertToLobby(state, patient)
+  fillEmptyQueuesFromLobby()
   broadcast("LOBBY_UPDATED", { patients: state.lobby.map(serializePatient), count: state.lobby.length })
   return c.json({ patient, assignedRoomId: null })
 })

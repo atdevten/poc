@@ -23,7 +23,7 @@ export function filterCandidates(room: Room): Patient[] {
       (p) =>
         p.status === "WAITING" &&
         p.type === "normal" &&
-        !p.rebalancedToday &&
+        p.rebalanceCount < state.settings.maxRebalancePerPatient &&
         p.queuePosition !== 1,
     )
     .sort((a, b) => {
@@ -73,6 +73,14 @@ export async function tryRebalance(
     `| reason: ${reason}`,
   )
 
+  const oldWait = (patient.queuePosition ?? 1) * overloadedRoom.avgDurationMin
+  const newWait = destRoom.currentPatient
+    ? (destRoom.queue.length + 1) * destRoom.avgDurationMin
+    : 0
+  const timeSavedMin = Math.max(0, oldWait - newWait)
+
+  if (timeSavedMin === 0) return { applied: false }
+
   if (settings.mode === "suggest") {
     broadcast("REBALANCE_SUGGEST", {
       patientId: patient.id,
@@ -83,6 +91,7 @@ export async function tryRebalance(
       toRoomName: destRoom.name,
       reason,
       aiUsed,
+      timeSavedMin,
       expiresIn: 30,
     })
     return {
@@ -128,7 +137,7 @@ export function applyRebalance(
 
   removeFromQueue(fromRoom, patientId)
   insertToQueue(toRoom, patient)
-  patient.rebalancedToday = true
+  patient.rebalanceCount++
 
   // If the destination room is idle, assign immediately instead of leaving in queue
   if (!toRoom.currentPatient) {

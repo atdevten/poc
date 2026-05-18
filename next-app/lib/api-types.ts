@@ -10,7 +10,7 @@ export interface BEPatient {
   currentRoomId: string | null
   completedRooms: string[]
   remainingRooms: string[]
-  rebalancedToday: boolean
+  rebalanceCount: number
   queuePosition: number | null
   estFinishMin: number
   waitMin: number
@@ -43,11 +43,11 @@ export interface BESettings {
   rebalanceThresholdMin: number
   maxQueuePerRoom: number
   mode: "auto" | "suggest"
-  noShowTimeoutMin: number
   emergencySoundAlert: boolean
   emergencyBannerAlert: boolean
   allowVipRebalance: boolean
   allowNormalRebalance: boolean
+  maxRebalancePerPatient: number
   aiPrompt: string
   roomTypes: Omit<BERoomType, "rooms">[]
 }
@@ -78,5 +78,6 @@ export interface RebalanceSuggestPayload {
   toRoomName: string
   reason: string
   aiUsed: boolean
+  timeSavedMin: number
   expiresIn: number
 }

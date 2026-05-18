@@ -1,8 +1,8 @@
 # UI Specification — Wellness Center POC
 ## Screen 1: Settings | Screen 2: Room Dashboard
 
-> Tài liệu UI spec thuần túy — layout, components, states, interactions.  
-> Không bao gồm business logic hay API.
+> UI spec — layout, components, states, interactions.
+> Does not include business logic or API.
 
 ---
 
@@ -645,8 +645,8 @@ Done button: hidden
 │  ─────────────────────────────────────────────────────────────  │
 │                                                                  │
 │  ⚡ [09:34]  AI suggests moving Hoang Van E → Blood Test Room 2  │
-│             "Hoang Van E chờ lâu nhất (22 phút) và ở vị trí    │
-│              3/4 nên ít gây xáo trộn nhất."                     │
+│             "Hoang Van E waited longest (22 min), position      │
+│              3/4 — least disruptive to move."                   │
 │                         [✓ Apply]  [✗ Dismiss]   ⏱ 8s          │
 │                                                                  │
 │  🚨 [09:33]  Emergency added: Le Van C — all rooms notified     │
@@ -674,8 +674,8 @@ Zone header:
 │  ⚡  [09:34]  AI suggests moving Hoang Van E                  │
 │              → Blood Test Room 2                              │
 │                                                               │
-│              "Hoang E chờ lâu nhất (22 phút) và ở vị trí    │
-│               3/4 nên ít gây xáo trộn nhất."                 │
+│              "Hoang E waited longest (22 min), position      │
+│               3/4 — least disruptive to move."               │
 │                                                               │
 │              [✓ Apply]   [✗ Dismiss]    ⏱ 8s               │
 └───────────────────────────────────────────────────────────────┘

@@ -47,6 +47,8 @@ export interface RebalancePayload {
   patientId: string
   fromRoomId: string
   toRoomId: string
+  reason?: string
+  aiUsed?: boolean
 }
 
 export interface Notification {
@@ -56,6 +58,7 @@ export interface Notification {
   message: string
   detail?: string
   aiReason?: string
+  timeSavedMin?: number
   countdown?: number
   autoDismiss?: boolean
   rebalancePayload?: RebalancePayload
@@ -169,7 +172,7 @@ export const INITIAL_NOTIFICATIONS: Notification[] = [
     type: "ai_suggestion",
     timestamp: "09:35",
     message: "AI suggests moving Hoang Van E → Blood Test Room 2",
-    aiReason: "Hoang Van E chờ lâu nhất (22 phút)",
+    aiReason: "Hoang Van E has waited longest (22 min)",
     countdown: 8,
     autoDismiss: true,
   },

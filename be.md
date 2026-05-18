@@ -1,6 +1,6 @@
 # Backend & Queue Flow — Wellness Center POC
 
-> Tài liệu mô tả kiến trúc Backend, data structures, API endpoints, queue engine, và toàn bộ luồng xử lý queue từ check-in đến exit.
+> Backend architecture, data structures, API endpoints, queue engine, and full queue flow from check-in to exit.
 
 ---
 
@@ -641,7 +641,7 @@ Failure cases:
 
 Fallback:
   selected = candidates[0]  ← sorted by waitTime DESC already
-  reason   = "Tự động chọn bệnh nhân chờ lâu nhất"
+  reason   = "Auto-selected longest-waiting patient"
   aiUsed   = false
 ```
 
@@ -879,7 +879,7 @@ Check: is there any active room (any room type) with queue < maxQueuePerRoom?
       "patientId": "N008",
       "fromRoomId": "blood-1",
       "toRoomId": "blood-3",
-      "reason": "Ly Thi L chờ lâu nhất và ở vị trí cuối queue, ít gây xáo trộn nhất.",
+      "reason": "Ly Thi L waited longest and is last in queue — least disruptive to move.",
       "aiUsed": true
     }
   ]
@@ -944,7 +944,7 @@ Check: is there any active room (any room type) with queue < maxQueuePerRoom?
     │    - Notification bar shows Gemini reason
     ▼
 [Next.js] Patient's screen updates
-    "Bạn được chuyển sang Blood Test Room 3"
+    "You have been moved to Blood Test Room 3"
 ```
 
 ---

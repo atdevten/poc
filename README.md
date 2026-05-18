@@ -155,35 +155,38 @@ poc/
 
 ```mermaid
 flowchart TD
-    T1[Room Done] --> TR
+    T1[Room Done] --> FQ[fillEmptyQueuesFromLobby\nFill idle queues from lobby immediately]
+    T1 --> TR
     T2[Scheduler 60s] --> TR
     T3[Emergency Added] --> TR
     T4[Manual] --> TR
+    T5[Patient added to lobby] --> FQ
 
     TR[tryRebalance destRoom]
     TR --> SR{Same-type rooms\nexist?}
     SR -- No --> END1[Exit — no-op]
     SR -- Yes --> LD{Load delta >\nthreshold?}
     LD -- No --> END1
-    LD -- Yes --> FC[filterCandidates overloadedRoom\n• status = WAITING\n• type = normal\n• rebalancedToday = false\n• queuePosition ≠ 1]
+    LD -- Yes --> FC[filterCandidates overloadedRoom\n• status = WAITING\n• type = normal\n• rebalanceCount < maxRebalancePerPatient\n• queuePosition ≠ 1]
     FC --> CE{Candidates\nexist?}
     CE -- No --> END1
-    CE -- Yes --> AI[Gemini API\n3s timeout]
+    CE -- Yes --> AI[Gemini API\n8s timeout · 2 retries]
     AI -- OK --> SEL[selected_id + reason\naiUsed = true]
     AI -- Fail / Timeout --> FB[Fallback: first candidate\nlongest wait\naiUsed = false]
     SEL --> MODE{Settings\nmode?}
     FB --> MODE
-    MODE -- suggest --> SG[Broadcast REBALANCE_SUGGEST\nStaff confirms manually]
+    MODE -- suggest --> SG[Broadcast REBALANCE_SUGGEST\n+ timeSavedMin\nStaff confirms manually]
     MODE -- auto --> AP[applyRebalance]
     SG -- Staff confirms --> AP
     SG -- Ignored / Expired --> END2[Exit — no move]
-    AP --> MV[Move patient:\nremove fromRoom queue\ninsert toRoom queue\nrebalancedToday = true]
+    AP --> MV[Move patient:\nremove fromRoom queue\ninsert toRoom queue\nrebalanceCount++]
     MV --> BC[Broadcast:\nROOM_UPDATED ×2\nREBALANCE_APPLIED\nNOTIFICATION]
 ```
 
 ## Notes
 
 - State is **in-memory** — restart clears all patients and queues
-- `rebalancedToday` flag resets on restart
+- `rebalanceCount` resets on restart; configurable max via `maxRebalancePerPatient` setting
+- `fillEmptyQueuesFromLobby` runs immediately on every lobby change — no 60s wait
 - Settings changes apply to **new** routing decisions only; active patients unaffected
-- Gemini call has **3s timeout** — always falls back gracefully
+- Gemini call has **8s timeout** with 2 retries on 429 — always falls back gracefully

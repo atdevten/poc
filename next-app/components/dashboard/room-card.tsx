@@ -185,6 +185,11 @@ export function RoomCard({ room, onDone, assignmentMode, pendingSuggestion, onAc
                       <p className="mb-1.5 font-sans text-[11px] text-[#92400E]">
                         Please proceed to <span className="font-semibold">{pendingSuggestion.toRoomName}</span>?
                       </p>
+                      {pendingSuggestion.timeSavedMin > 0 && (
+                        <p className="mb-1 font-mono text-[11px] font-medium text-[#16A34A]">
+                          ⏱ Save ~{pendingSuggestion.timeSavedMin}m
+                        </p>
+                      )}
                       {pendingSuggestion.reason && (
                         <p className="mb-2 font-sans text-[11px] italic text-[#B45309]">
                           {pendingSuggestion.reason}

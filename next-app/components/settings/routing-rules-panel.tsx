@@ -6,12 +6,12 @@ import { Toggle } from "@/components/ui/toggle"
 export interface RoutingRulesState {
   rebalanceThreshold: number
   maxQueuePerRoom: number
+  maxRebalancePerPatient: number
   assignmentMode: "auto" | "suggest"
   emergencySoundAlert: boolean
   emergencyBannerAlert: boolean
   vipAllowRebalance: boolean
   normalAllowRebalance: boolean
-  noShowMinutes: number
   aiPrompt: string
 }
 
@@ -139,6 +139,25 @@ export function RoutingRulesPanel({ value: state, onChange }: RoutingRulesPanelP
           </div>
         </div>
 
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-sans text-[14px] text-[#0F172A]">Max rebalance per patient</p>
+            <p className="mt-0.5 font-sans text-[12px] text-[#94A3B8]">
+              Times a patient can be moved between rooms
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <input
+              type="number"
+              value={state.maxRebalancePerPatient}
+              onChange={(e) => update("maxRebalancePerPatient", Number(e.target.value))}
+              className={inputClass}
+              min={0}
+            />
+            <span className="font-sans text-[13px] text-[#64748B]">times</span>
+          </div>
+        </div>
+
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="font-sans text-[14px] text-[#0F172A]">Assignment mode</p>
@@ -236,29 +255,6 @@ export function RoutingRulesPanel({ value: state, onChange }: RoutingRulesPanelP
 
 
 
-      {/* No-show Handling */}
-      <section>
-        <h2 className="mb-4 font-mono text-[11px] uppercase tracking-widest text-[#94A3B8]">
-          No-show Handling
-        </h2>
-
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-4">
-            <p className="font-sans text-[14px] text-[#0F172A]">Auto mark NO_SHOW after</p>
-            <div className="flex shrink-0 items-center gap-2">
-              <input
-                type="number"
-                value={state.noShowMinutes}
-                onChange={(e) => update("noShowMinutes", Number(e.target.value))}
-                className={inputClass}
-                min={1}
-              />
-              <span className="font-sans text-[13px] text-[#64748B]">min</span>
-            </div>
-          </div>
-
-        </div>
-      </section>
     </div>
   )
 }

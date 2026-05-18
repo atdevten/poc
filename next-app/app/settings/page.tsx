@@ -13,12 +13,12 @@ import type { BESettings } from "@/lib/api-types"
 const DEFAULT_ROUTING: RoutingRulesState = {
   rebalanceThreshold: 20,
   maxQueuePerRoom: 5,
+  maxRebalancePerPatient: 3,
   assignmentMode: "auto",
   emergencySoundAlert: true,
   emergencyBannerAlert: true,
   vipAllowRebalance: false,
   normalAllowRebalance: true,
-  noShowMinutes: 15,
   aiPrompt: "- Pick exactly 1 patient\n- Prefer longer wait time (fairness)\n- Prefer higher queue position number (less disruptive to move)\n- If two candidates have wait times within 5 minutes of each other, prefer the one with a more urgent or serious medical reason\n- Balance all three factors — do not pick by a single criterion blindly",
 }
 
@@ -26,12 +26,12 @@ function beToRouting(s: BESettings): RoutingRulesState {
   return {
     rebalanceThreshold: s.rebalanceThresholdMin,
     maxQueuePerRoom: s.maxQueuePerRoom,
+    maxRebalancePerPatient: s.maxRebalancePerPatient ?? 1,
     assignmentMode: s.mode,
     emergencySoundAlert: s.emergencySoundAlert,
     emergencyBannerAlert: s.emergencyBannerAlert,
     vipAllowRebalance: s.allowVipRebalance,
     normalAllowRebalance: s.allowNormalRebalance,
-    noShowMinutes: s.noShowTimeoutMin,
     aiPrompt: s.aiPrompt || "",
   }
 }
@@ -51,12 +51,12 @@ function toBESettings(routing: RoutingRulesState, journey: RoomJourneyItem[]): P
   return {
     rebalanceThresholdMin: routing.rebalanceThreshold,
     maxQueuePerRoom: routing.maxQueuePerRoom,
+    maxRebalancePerPatient: routing.maxRebalancePerPatient,
     mode: routing.assignmentMode,
     emergencySoundAlert: routing.emergencySoundAlert,
     emergencyBannerAlert: routing.emergencyBannerAlert,
     allowVipRebalance: routing.vipAllowRebalance,
     allowNormalRebalance: routing.normalAllowRebalance,
-    noShowTimeoutMin: routing.noShowMinutes,
     aiPrompt: routing.aiPrompt,
     roomTypes: journey.map((r, i) => ({
       id: r.id,

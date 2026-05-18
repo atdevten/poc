@@ -65,7 +65,7 @@ Rules:
 Respond with valid JSON only:
 {
   "selected_id": "...",
-  "reason": "A highly detailed, natural explanation in English explaining the choice comprehensively, comparing wait time, queue position, and medical urgency (e.g., 'Although wait times are equal, Laura Davis is selected due to her urgent pre-surgery status and highest queue position, minimizing disruption to the flow of the source room')"
+  "reason": "One short phrase (max 8 words) explaining why this patient was chosen. Focus only on the deciding factor. Examples: 'Longest wait time', 'Urgent pre-surgery status', 'Highest queue position + critical condition'"
 }`
 
   console.log("[gemini] request", JSON.stringify({ prompt, candidateData, sourceLoad, destLoad, delta }, null, 2))
