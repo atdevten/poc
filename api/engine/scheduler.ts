@@ -50,19 +50,23 @@ export function fillEmptyQueuesFromLobby(): void {
 
 export async function checkPeriodicRebalance(excludeRoomId?: string) {
   const roomTypeIds = [...new Set([...state.rooms.values()].map((r) => r.roomType))]
+  const maxMoves = state.settings.maxRebalancePerPatient
 
-  for (const roomTypeId of roomTypeIds) {
-    const rooms = [...state.rooms.values()].filter(
-      (r) => r.roomType === roomTypeId && r.status !== "closed" && r.id !== excludeRoomId,
-    )
-    if (rooms.length < 2) continue
+  await Promise.all(roomTypeIds.map(async (roomTypeId) => {
+    for (let i = 0; i < maxMoves; i++) {
+      const rooms = [...state.rooms.values()].filter(
+        (r) => r.roomType === roomTypeId && r.status !== "closed" && r.id !== excludeRoomId,
+      )
+      if (rooms.length < 2) break
 
-    const loads = rooms.map((r) => calculateLoad(r))
-    const maxLoad = Math.max(...loads)
-    const minLoad = Math.min(...loads)
-    if (maxLoad - minLoad <= state.settings.rebalanceThresholdMin) continue
+      const loads = rooms.map((r) => calculateLoad(r))
+      const maxLoad = Math.max(...loads)
+      const minLoad = Math.min(...loads)
+      if (maxLoad - minLoad <= state.settings.rebalanceThresholdMin) break
 
-    const destRoom = rooms.find((r) => calculateLoad(r) === minLoad)!
-    await tryRebalance(state, destRoom, "periodic")
-  }
+      const destRoom = rooms.find((r) => calculateLoad(r) === minLoad)!
+      const result = await tryRebalance(state, destRoom, "periodic")
+      if (!result.applied) break
+    }
+  }))
 }

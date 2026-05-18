@@ -60,29 +60,39 @@ app.post("/done/:roomId", async (c) => {
     return c.json({ completedPatient, nextPatient: lobbyPatient, rebalanceSuggest: null })
   }
 
-  // STEP 3B — Try rebalance
-  const result = await tryRebalance(state, room, "done")
+  // STEP 3B — Try rebalance (loop up to maxRebalancePerPatient times)
+  const maxMoves = state.settings.maxRebalancePerPatient
+  let lastSuggest = undefined
+  let anyApplied = false
 
-  if (result.applied) {
-    // Rebalance moved patient directly into the room queue — pull next
+  for (let i = 0; i < maxMoves; i++) {
+    const result = await tryRebalance(state, room, "done")
+    if (!result.applied) {
+      lastSuggest = result.suggest
+      break
+    }
+    anyApplied = true
+  }
+
+  if (anyApplied) {
     next = getNextFromQueue(room)
     if (next) {
       room.queue.shift()
       assignPatient(room, next)
     }
     broadcast("ROOM_UPDATED", { roomId: room.id, room: serializeRoom(room) })
+    void setImmediate(() => checkPeriodicRebalance(room.id))
     return c.json({ completedPatient, nextPatient: next ?? null, rebalanceSuggest: null })
   }
 
   // STEP 4 — Idle
   room.status = "idle"
   broadcast("ROOM_UPDATED", { roomId: room.id, room: serializeRoom(room) })
-  // Trigger rebalance for all OTHER rooms in background (this room already handled in STEP 3B)
   void setImmediate(() => checkPeriodicRebalance(room.id))
   return c.json({
     completedPatient,
     nextPatient: null,
-    rebalanceSuggest: result.suggest ?? null,
+    rebalanceSuggest: lastSuggest ?? null,
   })
 })
 
