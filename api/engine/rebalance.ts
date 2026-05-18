@@ -168,8 +168,8 @@ export function applyRebalance(
   broadcast("ROOM_UPDATED", { roomId: toRoomId, room: serializeRoom(toRoom) })
   broadcast("REBALANCE_APPLIED", { log })
   broadcast("NOTIFICATION", {
-    kind: "success",
-    message: `Moved ${patient.name}: ${fromRoom.name} → ${toRoom.name} | wait reduced by ${reducedMin}m`,
+    kind: "info",
+    message: `↔ Moved ${patient.name}: ${fromRoom.name} → ${toRoom.name} | saved ${reducedMin}m`,
     detail: reason,
   })
 

@@ -72,7 +72,8 @@ Respond with valid JSON only:
 
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({
-    model: "gemini-3.1-flash-lite",
+    // model: "gemini-3.1-flash-lite",
+   model: "gemini-2.5-flash",
     systemInstruction:
       "You are a queue coordinator AI for a medical wellness center. You help decide which patient should be moved to balance room loads. Always respond with valid JSON only. No explanation outside JSON.",
   })
