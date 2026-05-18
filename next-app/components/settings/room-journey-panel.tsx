@@ -16,14 +16,14 @@ export function RoomJourneyPanel({ value: rooms, onChange: setRooms }: RoomJourn
   function moveUp(index: number) {
     if (index === 0) return
     const next = [...rooms]
-    ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
+      ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
     setRooms(next)
   }
 
   function moveDown(index: number) {
     if (index === rooms.length - 1) return
     const next = [...rooms]
-    ;[next[index], next[index + 1]] = [next[index + 1], next[index]]
+      ;[next[index], next[index + 1]] = [next[index + 1], next[index]]
     setRooms(next)
   }
 
@@ -133,7 +133,7 @@ export function RoomJourneyPanel({ value: rooms, onChange: setRooms }: RoomJourn
       <div className="border-t border-[#E2E8F0]" />
 
       {/* Room Hours */}
-      <section>
+      {/* <section>
         <h2 className="mb-4 font-mono text-[11px] uppercase tracking-widest text-[#94A3B8]">
           Room Hours
         </h2>
@@ -163,7 +163,7 @@ export function RoomJourneyPanel({ value: rooms, onChange: setRooms }: RoomJourn
             </div>
           ))}
         </div>
-      </section>
+      </section> */}
     </div>
   )
 }

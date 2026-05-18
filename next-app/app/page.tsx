@@ -13,6 +13,7 @@ export default function DashboardPage() {
     lobbyPatients,
     notifications,
     pendingSuggestions,
+    assignmentMode,
     isConnected,
     addPatient,
     markDone,
@@ -35,6 +36,7 @@ export default function DashboardPage() {
         <RoomsZone
           groups={roomGroups}
           onDone={markDone}
+          assignmentMode={assignmentMode}
           pendingSuggestions={pendingSuggestions}
           onAcceptSuggestion={acceptSuggestion}
           onDeclineSuggestion={declineSuggestion}

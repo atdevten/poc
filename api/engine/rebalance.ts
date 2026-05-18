@@ -1,6 +1,6 @@
 import type { AppState, Patient, RebalanceLog, Room } from "../store/state"
 import { state } from "../store/state"
-import { calculateLoad, insertToQueue, removeFromQueue } from "./queue"
+import { calculateLoad, insertToQueue, removeFromQueue, getNextFromQueue } from "./queue"
 import { selectCandidate } from "./gemini"
 import { broadcast, serializeRoom } from "../ws/broadcast"
 
@@ -117,9 +117,31 @@ export function applyRebalance(
 
   if (!fromRoom || !toRoom || !patient) return { applied: false }
 
+  const oldPos = patient.queuePosition ?? 1
+  const oldWait = oldPos * fromRoom.avgDurationMin
+
+  const newQueueLen = toRoom.queue.length
+  const assignedImmediately = !toRoom.currentPatient
+  const newWait = assignedImmediately ? 0 : (newQueueLen + 1) * toRoom.avgDurationMin
+  const waitDifference = oldWait - newWait
+  const reducedMin = Math.max(0, waitDifference)
+
   removeFromQueue(fromRoom, patientId)
   insertToQueue(toRoom, patient)
   patient.rebalancedToday = true
+
+  // If the destination room is idle, assign immediately instead of leaving in queue
+  if (!toRoom.currentPatient) {
+    const next = getNextFromQueue(toRoom)
+    if (next) {
+      toRoom.queue.shift()
+      toRoom.currentPatient = next
+      toRoom.consultStartAt = new Date()
+      toRoom.status = "active"
+      next.status = "IN_CONSULTATION"
+      next.currentRoomId = toRoom.id
+    }
+  }
 
   const log: RebalanceLog = {
     id: `LOG${Date.now()}`,
@@ -138,7 +160,7 @@ export function applyRebalance(
   broadcast("REBALANCE_APPLIED", { log })
   broadcast("NOTIFICATION", {
     kind: "success",
-    message: `Moved ${patient.name}: ${fromRoom.name} → ${toRoom.name}`,
+    message: `Moved ${patient.name}: ${fromRoom.name} → ${toRoom.name} | wait reduced by ${reducedMin}m`,
     detail: reason,
   })
 

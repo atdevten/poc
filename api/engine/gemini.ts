@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
-import type { Patient, Room } from "../store/state"
+import { state, type Patient, type Room } from "../store/state"
 
 interface GeminiResult {
   selectedId: string
@@ -12,6 +12,7 @@ interface Candidate {
   name: string
   waitMin: number
   queuePosition: number
+  medicalReason: string
 }
 
 const TIMEOUT_MS = 8000
@@ -32,13 +33,24 @@ export async function selectCandidate(
   const candidateData: Candidate[] = candidates.map((p) => ({
     id: p.id,
     name: p.name,
-    waitMin: p.lobbySince ? Math.floor((now - p.lobbySince.getTime()) / 60000) : 0,
+    waitMin: Math.floor((now - new Date(p.checkedInAt).getTime()) / 60000),
     queuePosition: p.queuePosition ?? 99,
+    medicalReason: p.medicalReason,
   }))
 
   const sourceLoad = sourceRoom.queue.length * sourceRoom.avgDurationMin
   const destLoad = destRoom.queue.length * destRoom.avgDurationMin
   const delta = sourceLoad - destLoad
+
+  const enabledRules = state.settings.aiPrompt
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (line.includes("[ ]")) return false // Skip disabled rules
+      return line.length > 0
+    })
+    .map((line) => line.replace(/^-\s*\[[x ]\]\s*/, "").replace(/^-\s*/, "").trim())
+    .join("\n- ")
 
   const prompt = `Current situation:
 Source room: ${sourceRoom.name}, load = ${sourceLoad} min
@@ -49,21 +61,18 @@ Eligible candidates to move (all Normal patients):
 ${JSON.stringify(candidateData, null, 2)}
 
 Rules:
-- Pick exactly 1 patient
-- Prefer longer wait time (fairness)
-- Prefer higher queue position number (less disruptive to move)
-- Balance both factors — do not pick longest wait blindly if they are next in line
+- ${enabledRules}
 Respond with valid JSON only:
 {
   "selected_id": "...",
-  "reason": "1 sentence in English"
+  "reason": "A highly detailed, natural explanation in English explaining the choice comprehensively, comparing wait time, queue position, and medical urgency (e.g., 'Although wait times are equal, Laura Davis is selected due to her urgent pre-surgery status and highest queue position, minimizing disruption to the flow of the source room')"
 }`
 
   console.log("[gemini] request", JSON.stringify({ prompt, candidateData, sourceLoad, destLoad, delta }, null, 2))
 
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-3.1-flash-lite",
     systemInstruction:
       "You are a queue coordinator AI for a medical wellness center. You help decide which patient should be moved to balance room loads. Always respond with valid JSON only. No explanation outside JSON.",
   })

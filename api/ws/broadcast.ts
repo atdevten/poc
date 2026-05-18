@@ -41,7 +41,8 @@ function buildSnapshot() {
 }
 
 export function serializePatient(patient: Patient) {
-  return { ...patient, estFinishMin: calcEstFinishMin(patient, state) }
+  const waitMin = Math.floor((Date.now() - new Date(patient.checkedInAt).getTime()) / 60000)
+  return { ...patient, estFinishMin: calcEstFinishMin(patient, state), waitMin }
 }
 
 export function serializeRoom(room: Room) {

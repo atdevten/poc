@@ -13,6 +13,7 @@ export interface BEPatient {
   rebalancedToday: boolean
   queuePosition: number | null
   estFinishMin: number
+  waitMin: number
 }
 
 export interface BERoom {
@@ -47,6 +48,7 @@ export interface BESettings {
   emergencyBannerAlert: boolean
   allowVipRebalance: boolean
   allowNormalRebalance: boolean
+  aiPrompt: string
   roomTypes: Omit<BERoomType, "rooms">[]
 }
 

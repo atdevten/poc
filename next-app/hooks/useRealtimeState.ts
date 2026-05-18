@@ -10,13 +10,11 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:3002"
 // ─── Transformers ─────────────────────────────────────────────────────────────
 
 function bePatientToFE(p: BEPatient): Patient {
-  const now = Date.now()
-  const waitMin = p.lobbySince ? Math.floor((now - new Date(p.lobbySince).getTime()) / 60000) : 0
   return {
     id: p.id,
     name: p.name,
     type: p.type,
-    waitMin,
+    waitMin: p.waitMin ?? 0,
     completedRooms: p.completedRooms.length,
     totalRooms: p.completedRooms.length + p.remainingRooms.length,
     estFinishMin: p.estFinishMin ?? 0,
@@ -28,9 +26,9 @@ function beRoomToFE(r: BERoom): Room {
   const loadMin = r.load
   const loadLevel: LoadLevel =
     !r.currentPatient && loadMin === 0 ? "IDLE"
-    : loadMin >= 40 ? "HIGH"
-    : loadMin >= 20 ? "MEDIUM"
-    : "LOW"
+      : loadMin >= 40 ? "HIGH"
+        : loadMin >= 20 ? "MEDIUM"
+          : "LOW"
 
   const current: RoomPatient | null = r.currentPatient
     ? { id: r.currentPatient.id, name: r.currentPatient.name, type: r.currentPatient.type, minutesAgo: r.consultMinutes ?? 0, estFinishMin: r.currentPatient.estFinishMin }
@@ -43,7 +41,7 @@ function beRoomToFE(r: BERoom): Room {
     load: loadLevel,
     loadMin,
     current,
-    queue: r.queue.map((p) => ({ id: p.id, name: p.name, type: p.type, estFinishMin: p.estFinishMin })),
+    queue: r.queue.map((p) => ({ id: p.id, name: p.name, type: p.type, estFinishMin: p.estFinishMin, waitMin: p.waitMin })),
   }
 }
 
@@ -71,6 +69,7 @@ export function useRealtimeState() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [pendingSuggestions, setPendingSuggestions] = useState<RebalanceSuggestPayload[]>([])
   const [isConnected, setIsConnected] = useState(false)
+  const [assignmentMode, setAssignmentMode] = useState<"auto" | "suggest">("suggest")
 
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -84,9 +83,11 @@ export function useRealtimeState() {
 
     switch (event.type) {
       case "SNAPSHOT": {
-        const payload = event.payload as { roomTypes: BERoomType[]; lobby: BEPatient[] }
+        const payload = event.payload as { roomTypes: BERoomType[]; lobby: BEPatient[]; settings?: { mode?: "auto" | "suggest"; assignmentMode?: "auto" | "suggest" } }
         setRoomGroups(payload.roomTypes.map(beRoomTypeToFE))
         setLobbyPatients(payload.lobby.map(bePatientToFE))
+        const m = payload.settings?.mode || payload.settings?.assignmentMode
+        if (m) setAssignmentMode(m)
         break
       }
       case "ROOM_UPDATED": {
@@ -119,7 +120,7 @@ export function useRealtimeState() {
         addNotif({
           type: "journey_complete",
           timestamp: ts,
-          message: `✅ ${patientName} hoàn thành tất cả phòng`,
+          message: `✅ ${patientName} completed all the rooms`,
           autoDismiss: true,
         })
         break
@@ -127,9 +128,21 @@ export function useRealtimeState() {
       case "REBALANCE_SUGGEST": {
         const p = event.payload as RebalanceSuggestPayload
         setPendingSuggestions((prev) => {
-          // Replace existing suggestion for same fromRoom (only one at a time per room)
           const filtered = prev.filter((s) => s.fromRoomId !== p.fromRoomId)
           return [...filtered, p]
+        })
+        addNotif({
+          type: "ai_suggestion",
+          timestamp: ts,
+          message: `AI suggests moving ${p.patientName}: ${p.fromRoomName} → ${p.toRoomName}`,
+          aiReason: p.reason,
+          countdown: p.expiresIn,
+          autoDismiss: true,
+          rebalancePayload: {
+            patientId: p.patientId,
+            fromRoomId: p.fromRoomId,
+            toRoomId: p.toRoomId,
+          }
         })
         break
       }
@@ -138,7 +151,16 @@ export function useRealtimeState() {
         setPendingSuggestions((prev) =>
           prev.filter((s) => !(s.fromRoomId === log.fromRoomId && s.patientId === log.patientId)),
         )
-        addNotif({ type: "auto_rebalance", timestamp: ts, message: "Rebalance đã áp dụng", autoDismiss: true })
+        setNotifications((prev) =>
+          prev.filter(
+            (n) =>
+              !(
+                n.rebalancePayload &&
+                n.rebalancePayload.fromRoomId === log.fromRoomId &&
+                n.rebalancePayload.patientId === log.patientId
+              ),
+          ),
+        )
         break
       }
       case "NOTIFICATION": {
@@ -156,6 +178,12 @@ export function useRealtimeState() {
           detail: detail ?? undefined,
           autoDismiss: kind !== "emergency",
         })
+        break
+      }
+      case "SETTINGS_UPDATED": {
+        const payload = event.payload as { settings?: { mode?: "auto" | "suggest"; assignmentMode?: "auto" | "suggest" } }
+        const m = payload.settings?.mode || payload.settings?.assignmentMode
+        if (m) setAssignmentMode(m)
         break
       }
     }
@@ -241,7 +269,9 @@ export function useRealtimeState() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(settings),
     })
-    return res.json() as Promise<BESettings>
+    const saved = await res.json() as BESettings
+    if (saved.assignmentMode) setAssignmentMode(saved.assignmentMode as "auto" | "suggest")
+    return saved
   }, [])
 
   const acceptSuggestion = useCallback(async (suggestion: RebalanceSuggestPayload) => {
@@ -263,6 +293,16 @@ export function useRealtimeState() {
     setPendingSuggestions((prev) =>
       prev.filter((s) => !(s.fromRoomId === suggestion.fromRoomId && s.patientId === suggestion.patientId)),
     )
+    setNotifications((prev) =>
+      prev.filter(
+        (n) =>
+          !(
+            n.rebalancePayload &&
+            n.rebalancePayload.fromRoomId === suggestion.fromRoomId &&
+            n.rebalancePayload.patientId === suggestion.patientId
+          ),
+      ),
+    )
   }, [])
 
   return {
@@ -270,6 +310,7 @@ export function useRealtimeState() {
     lobbyPatients,
     notifications,
     pendingSuggestions,
+    assignmentMode,
     isConnected,
     addPatient,
     markDone,

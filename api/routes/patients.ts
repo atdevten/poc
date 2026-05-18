@@ -7,7 +7,7 @@ import { broadcast, serializeRoom, serializePatient } from "../ws/broadcast"
 const app = new Hono()
 
 app.post("/patients/add", async (c) => {
-  const body = await c.req.json<{ name: string; type: string; reason?: string }>()
+  const body = await c.req.json<{ name: string; type: string; medicalReason?: string }>()
 
   if (!body.name || !["emergency", "vip", "normal"].includes(body.type)) {
     return c.json({ error: "Invalid request" }, 400)
@@ -26,6 +26,7 @@ app.post("/patients/add", async (c) => {
     remainingRooms: [...allRoomTypes],
     rebalancedToday: false,
     queuePosition: null,
+    medicalReason: body.medicalReason ?? "Not specified",
   }
 
   state.patients.set(patient.id, patient)
@@ -35,7 +36,7 @@ app.post("/patients/add", async (c) => {
     broadcast("NOTIFICATION", {
       kind: "emergency",
       message: `Emergency: ${patient.name} just added`,
-      detail: body.reason ?? null,
+      detail: patient.medicalReason,
     })
   }
 

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Toggle } from "@/components/ui/toggle"
 
 export interface RoutingRulesState {
@@ -11,6 +12,7 @@ export interface RoutingRulesState {
   vipAllowRebalance: boolean
   normalAllowRebalance: boolean
   noShowMinutes: number
+  aiPrompt: string
 }
 
 interface RoutingRulesPanelProps {
@@ -24,6 +26,80 @@ const inputClass =
 export function RoutingRulesPanel({ value: state, onChange }: RoutingRulesPanelProps) {
   function update<K extends keyof RoutingRulesState>(key: K, val: RoutingRulesState[K]) {
     onChange({ ...state, [key]: val })
+  }
+
+  // AI Decision Rules parsing and serialization
+  interface RuleItem {
+    id: string
+    text: string
+    enabled: boolean
+  }
+
+  function parsePrompt(promptStr: string): RuleItem[] {
+    if (!promptStr) return []
+    return promptStr.split("\n").map((line, idx) => {
+      const trimmed = line.trim()
+      let text = trimmed
+      let enabled = true
+
+      if (trimmed.startsWith("- [x]")) {
+        enabled = true
+        text = trimmed.replace("- [x]", "").trim()
+      } else if (trimmed.startsWith("- [ ]")) {
+        enabled = false
+        text = trimmed.replace("- [ ]", "").trim()
+      } else if (trimmed.startsWith("-")) {
+        enabled = true
+        text = trimmed.replace("-", "").trim()
+      }
+
+      return {
+        id: `rule-${idx}`,
+        text,
+        enabled
+      }
+    })
+  }
+
+  function serializePrompt(rules: RuleItem[]): string {
+    return rules
+      .map(r => `- [${r.enabled ? "x" : " "}] ${r.text}`)
+      .join("\n")
+  }
+
+  const [rules, setRules] = useState<RuleItem[]>([])
+
+  useEffect(() => {
+    setRules(parsePrompt(state.aiPrompt))
+  }, [state.aiPrompt])
+
+  function handleToggle(id: string) {
+    const updated = rules.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r)
+    setRules(updated)
+    update("aiPrompt", serializePrompt(updated))
+  }
+
+  function handleTextChange(id: string, newText: string) {
+    const updated = rules.map(r => r.id === id ? { ...r, text: newText } : r)
+    setRules(updated)
+    update("aiPrompt", serializePrompt(updated))
+  }
+
+  function handleAddRule() {
+    const newRule: RuleItem = {
+      id: `rule-${Date.now()}`,
+      text: "New decision rule",
+      enabled: true
+    }
+    const updated = [...rules, newRule]
+    setRules(updated)
+    update("aiPrompt", serializePrompt(updated))
+  }
+
+  function handleRemoveRule(id: string) {
+    const updated = rules.filter(r => r.id !== id)
+    setRules(updated)
+    update("aiPrompt", serializePrompt(updated))
   }
 
   return (
@@ -99,65 +175,66 @@ export function RoutingRulesPanel({ value: state, onChange }: RoutingRulesPanelP
 
       <div className="border-t border-[#E2E8F0]" />
 
-      {/* Priority Rules */}
+      {/* AI Prompt */}
       <section>
-        <h2 className="mb-4 font-mono text-[11px] uppercase tracking-widest text-[#94A3B8]">
-          Priority Rules
-        </h2>
-
-        <div className="flex flex-col gap-2.5">
-          {/* Emergency */}
-          <div className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-4 py-3">
-            <div className="mb-1 flex items-center gap-2">
-              <span className="text-[13px]">🚨</span>
-              <span className="font-sans text-[13px] font-semibold text-[#B91C1C]">Emergency</span>
-              <span className="font-sans text-[12px] text-[#94A3B8]">· Skip to front of all queues</span>
-            </div>
-            <div className="mt-2.5 flex flex-col gap-2 pl-1">
-              <div className="flex items-center justify-between">
-                <span className="font-sans text-[13px] text-[#0F172A]">Sound alert</span>
-                <Toggle checked={state.emergencySoundAlert} onChange={(v) => update("emergencySoundAlert", v)} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-sans text-[13px] text-[#0F172A]">Banner alert</span>
-                <Toggle checked={state.emergencyBannerAlert} onChange={(v) => update("emergencyBannerAlert", v)} />
-              </div>
-            </div>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="font-mono text-[11px] uppercase tracking-widest text-[#94A3B8]">
+              AI Decision Rules
+            </h2>
+            <p className="mt-1 font-sans text-[12px] text-[#94A3B8]">
+              These rules guide Gemini when auto-selecting patients to move.
+            </p>
           </div>
+          <button
+            onClick={handleAddRule}
+            className="rounded bg-[#3B82F6] px-3 py-1.5 font-sans text-[12px] font-medium text-white transition-all hover:bg-[#2563EB]"
+          >
+            + Add Rule
+          </button>
+        </div>
 
-          {/* VIP */}
-          <div className="rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3">
-            <div className="mb-1 flex items-center gap-2">
-              <span className="text-[13px]">🥇</span>
-              <span className="font-sans text-[13px] font-semibold text-[#92400E]">VIP</span>
-              <span className="font-sans text-[12px] text-[#94A3B8]">· Skip Normal patients</span>
-            </div>
-            <div className="mt-2.5 pl-1">
-              <div className="flex items-center justify-between">
-                <span className="font-sans text-[13px] text-[#0F172A]">Allow rebalance</span>
-                <Toggle checked={state.vipAllowRebalance} onChange={(v) => update("vipAllowRebalance", v)} />
+        <div className="flex flex-col gap-3">
+          {rules.length === 0 ? (
+            <p className="font-sans text-[12px] italic text-[#94A3B8] p-4 text-center border border-dashed border-[#E2E8F0] rounded-lg">
+              No rules defined. AI will use its default criteria.
+            </p>
+          ) : (
+            rules.map((rule) => (
+              <div
+                key={rule.id}
+                className="flex items-start gap-3 rounded-lg border border-[#E2E8F0] bg-white p-3 shadow-sm hover:border-[#CBD5E1] transition-all"
+              >
+                <input
+                  type="checkbox"
+                  checked={rule.enabled}
+                  onChange={() => handleToggle(rule.id)}
+                  className="mt-1.5 h-4.5 w-4.5 rounded border-[#CBD5E1] text-[#3B82F6] focus:ring-[#3B82F6] cursor-pointer"
+                />
+                <textarea
+                  value={rule.text}
+                  onChange={(e) => handleTextChange(rule.id, e.target.value)}
+                  rows={2}
+                  className="flex-1 resize-none bg-transparent font-sans text-[13px] text-[#0F172A] focus:outline-none placeholder-[#94A3B8] leading-relaxed"
+                  placeholder="Enter decision rule..."
+                  style={{ textDecoration: rule.enabled ? "none" : "line-through", opacity: rule.enabled ? 1 : 0.5 }}
+                />
+                <button
+                  onClick={() => handleRemoveRule(rule.id)}
+                  className="mt-0.5 rounded p-1 text-[#94A3B8] hover:bg-[#F1F5F9] hover:text-[#EF4444] transition-all"
+                  title="Remove rule"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
               </div>
-            </div>
-          </div>
-
-          {/* Normal */}
-          <div className="rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-4 py-3">
-            <div className="mb-1 flex items-center gap-2">
-              <span className="text-[13px]">👤</span>
-              <span className="font-sans text-[13px] font-semibold text-[#0F172A]">Normal</span>
-              <span className="font-sans text-[12px] text-[#94A3B8]">· FIFO order</span>
-            </div>
-            <div className="mt-2.5 pl-1">
-              <div className="flex items-center justify-between">
-                <span className="font-sans text-[13px] text-[#0F172A]">Allow rebalance</span>
-                <Toggle checked={state.normalAllowRebalance} onChange={(v) => update("normalAllowRebalance", v)} />
-              </div>
-            </div>
-          </div>
+            ))
+          )}
         </div>
       </section>
 
       <div className="border-t border-[#E2E8F0]" />
+
+
 
       {/* No-show Handling */}
       <section>

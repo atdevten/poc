@@ -25,7 +25,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn(dmSans.variable, dmMono.variable)}
     >
-      <body className="antialiased bg-[#F8FAFC] text-[#0F172A] min-h-screen">
+      <body suppressHydrationWarning className="antialiased bg-[#F8FAFC] text-[#0F172A] min-h-screen">
         {children}
       </body>
     </html>

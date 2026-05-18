@@ -5,12 +5,13 @@ import { RoomTypeGroup as RoomTypeGroupComponent } from "./room-type-group"
 interface RoomsZoneProps {
   groups: RoomTypeGroup[]
   onDone: (roomId: string) => Promise<void>
+  assignmentMode: "auto" | "suggest"
   pendingSuggestions: RebalanceSuggestPayload[]
   onAcceptSuggestion: (s: RebalanceSuggestPayload) => Promise<void>
   onDeclineSuggestion: (s: RebalanceSuggestPayload) => void
 }
 
-export function RoomsZone({ groups, onDone, pendingSuggestions, onAcceptSuggestion, onDeclineSuggestion }: RoomsZoneProps) {
+export function RoomsZone({ groups, onDone, assignmentMode, pendingSuggestions, onAcceptSuggestion, onDeclineSuggestion }: RoomsZoneProps) {
   return (
     <section className="flex-1 overflow-y-auto px-6 py-5">
       <div className="flex flex-col gap-8">
@@ -19,6 +20,7 @@ export function RoomsZone({ groups, onDone, pendingSuggestions, onAcceptSuggesti
             key={group.type}
             group={group}
             onDone={onDone}
+            assignmentMode={assignmentMode}
             pendingSuggestions={pendingSuggestions}
             onAcceptSuggestion={onAcceptSuggestion}
             onDeclineSuggestion={onDeclineSuggestion}

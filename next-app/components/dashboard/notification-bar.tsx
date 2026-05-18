@@ -80,12 +80,17 @@ function NotificationItem({ notif, onDismiss, onApply }: NotifItemProps) {
   if (notif.type === "emergency") {
     return (
       <div
-        className="flex items-center gap-3 px-4 py-2.5"
+        className="flex flex-col gap-1 px-4 py-2.5"
         style={{ backgroundColor: "#FEF2F2", borderLeft: "3px solid #EF4444" }}
       >
-        <span className="shrink-0">🚨</span>
-        <span className="font-mono text-[11px] text-[#94A3B8]">{notif.timestamp}</span>
-        <span className="font-sans text-[13px] text-[#B91C1C]">{notif.message}</span>
+        <div className="flex items-center gap-3">
+          <span className="shrink-0">🚨</span>
+          <span className="font-mono text-[11px] text-[#94A3B8]">{notif.timestamp}</span>
+          <span className="font-sans text-[13px] text-[#B91C1C]">{notif.message}</span>
+        </div>
+        {notif.detail && (
+          <p className="ml-7 font-sans text-[12px] italic leading-snug text-[#991B1B]">{notif.detail}</p>
+        )}
       </div>
     )
   }
@@ -93,12 +98,17 @@ function NotificationItem({ notif, onDismiss, onApply }: NotifItemProps) {
   if (notif.type === "auto_rebalance") {
     return (
       <div
-        className="flex items-center gap-3 px-4 py-2.5"
+        className="flex flex-col gap-1 px-4 py-2.5"
         style={{ backgroundColor: "#FFFFFF", borderLeft: "3px solid #D97706" }}
       >
-        <span className="shrink-0 text-[#D97706]">↔</span>
-        <span className="font-mono text-[11px] text-[#94A3B8]">{notif.timestamp}</span>
-        <span className="font-sans text-[13px] text-[#64748B]">{notif.message}</span>
+        <div className="flex items-center gap-3">
+          <span className="shrink-0 text-[#D97706]">↔</span>
+          <span className="font-mono text-[11px] text-[#94A3B8]">{notif.timestamp}</span>
+          <span className="font-sans text-[13px] text-[#64748B]">{notif.message}</span>
+        </div>
+        {notif.detail && (
+          <p className="ml-7 font-sans text-[12px] italic leading-snug text-[#64748B]">{notif.detail}</p>
+        )}
       </div>
     )
   }
@@ -106,12 +116,17 @@ function NotificationItem({ notif, onDismiss, onApply }: NotifItemProps) {
   if (notif.type === "journey_complete") {
     return (
       <div
-        className="flex items-center gap-3 px-4 py-2.5"
+        className="flex flex-col gap-1 px-4 py-2.5"
         style={{ backgroundColor: "#F0FDF4", borderLeft: "3px solid #16A34A" }}
       >
-        <span className="shrink-0">✅</span>
-        <span className="font-mono text-[11px] text-[#94A3B8]">{notif.timestamp}</span>
-        <span className="font-sans text-[13px] text-[#166534]">{notif.message}</span>
+        <div className="flex items-center gap-3">
+          <span className="shrink-0">✅</span>
+          <span className="font-mono text-[11px] text-[#94A3B8]">{notif.timestamp}</span>
+          <span className="font-sans text-[13px] text-[#166534]">{notif.message}</span>
+        </div>
+        {notif.detail && (
+          <p className="ml-7 font-sans text-[12px] italic leading-snug text-[#166534]">{notif.detail}</p>
+        )}
       </div>
     )
   }

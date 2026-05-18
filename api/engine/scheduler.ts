@@ -28,12 +28,12 @@ function checkNoShows() {
   }
 }
 
-async function checkPeriodicRebalance() {
+export async function checkPeriodicRebalance(excludeRoomId?: string) {
   const roomTypeIds = [...new Set([...state.rooms.values()].map((r) => r.roomType))]
 
   for (const roomTypeId of roomTypeIds) {
     const rooms = [...state.rooms.values()].filter(
-      (r) => r.roomType === roomTypeId && r.status !== "closed",
+      (r) => r.roomType === roomTypeId && r.status !== "closed" && r.id !== excludeRoomId,
     )
     if (rooms.length < 2) continue
 

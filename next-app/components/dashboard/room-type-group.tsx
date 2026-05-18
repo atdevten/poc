@@ -5,12 +5,13 @@ import { RoomCard } from "./room-card"
 interface RoomTypeGroupProps {
   group: RoomTypeGroupData
   onDone: (roomId: string) => Promise<void>
+  assignmentMode: "auto" | "suggest"
   pendingSuggestions: RebalanceSuggestPayload[]
   onAcceptSuggestion: (s: RebalanceSuggestPayload) => Promise<void>
   onDeclineSuggestion: (s: RebalanceSuggestPayload) => void
 }
 
-export function RoomTypeGroup({ group, onDone, pendingSuggestions, onAcceptSuggestion, onDeclineSuggestion }: RoomTypeGroupProps) {
+export function RoomTypeGroup({ group, onDone, assignmentMode, pendingSuggestions, onAcceptSuggestion, onDeclineSuggestion }: RoomTypeGroupProps) {
   return (
     <div>
       <div className="mb-3 flex items-center gap-2 border-b border-[#E2E8F0] pb-2">
@@ -30,6 +31,7 @@ export function RoomTypeGroup({ group, onDone, pendingSuggestions, onAcceptSugge
               key={room.id}
               room={room}
               onDone={onDone}
+              assignmentMode={assignmentMode}
               pendingSuggestion={suggestion}
               onAcceptSuggestion={onAcceptSuggestion}
               onDeclineSuggestion={onDeclineSuggestion}

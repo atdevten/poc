@@ -22,6 +22,7 @@ export interface RoomPatient {
   type: PatientType
   minutesAgo?: number
   estFinishMin?: number
+  waitMin?: number
 }
 
 export interface Room {

@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import { state } from "../store/state"
 import { getNextFromQueue, getFromLobby, insertToLobby, removeFromLobby } from "../engine/queue"
 import { tryRebalance } from "../engine/rebalance"
+import { checkPeriodicRebalance } from "../engine/scheduler"
 import { broadcast, serializeRoom, serializePatient } from "../ws/broadcast"
 
 const app = new Hono()
@@ -40,6 +41,8 @@ app.post("/done/:roomId", async (c) => {
     room.queue.shift()
     assignPatient(room, next)
     broadcast("ROOM_UPDATED", { roomId: room.id, room: serializeRoom(room) })
+    // Trigger rebalance for all OTHER rooms in background
+    void setImmediate(() => checkPeriodicRebalance(room.id))
     return c.json({ completedPatient, nextPatient: next, rebalanceSuggest: null })
   }
 
@@ -50,6 +53,8 @@ app.post("/done/:roomId", async (c) => {
     assignPatient(room, lobbyPatient)
     broadcast("LOBBY_UPDATED", { patients: state.lobby.map(serializePatient), count: state.lobby.length })
     broadcast("ROOM_UPDATED", { roomId: room.id, room: serializeRoom(room) })
+    // Trigger rebalance for all OTHER rooms in background
+    void setImmediate(() => checkPeriodicRebalance(room.id))
     return c.json({ completedPatient, nextPatient: lobbyPatient, rebalanceSuggest: null })
   }
 
@@ -70,6 +75,8 @@ app.post("/done/:roomId", async (c) => {
   // STEP 4 — Idle
   room.status = "idle"
   broadcast("ROOM_UPDATED", { roomId: room.id, room: serializeRoom(room) })
+  // Trigger rebalance for all OTHER rooms in background (this room already handled in STEP 3B)
+  void setImmediate(() => checkPeriodicRebalance(room.id))
   return c.json({
     completedPatient,
     nextPatient: null,

@@ -20,10 +20,10 @@ function typeIcon(type: PatientType) {
 }
 
 const loadConfigs: Record<LoadLevel, { dot: string; bg: string; text: string; border: string; label: string }> = {
-  HIGH:   { dot: "#EF4444", bg: "#FEF2F2", text: "#EF4444", border: "#FECACA", label: "HIGH" },
+  HIGH: { dot: "#EF4444", bg: "#FEF2F2", text: "#EF4444", border: "#FECACA", label: "HIGH" },
   MEDIUM: { dot: "#D97706", bg: "#FFFBEB", text: "#D97706", border: "#FDE68A", label: "MED" },
-  LOW:    { dot: "#16A34A", bg: "#F0FDF4", text: "#16A34A", border: "#BBF7D0", label: "LOW" },
-  IDLE:   { dot: "#94A3B8", bg: "#F1F5F9", text: "#94A3B8", border: "#CBD5E1", label: "IDLE" },
+  LOW: { dot: "#16A34A", bg: "#F0FDF4", text: "#16A34A", border: "#BBF7D0", label: "LOW" },
+  IDLE: { dot: "#94A3B8", bg: "#F1F5F9", text: "#94A3B8", border: "#CBD5E1", label: "IDLE" },
 }
 
 function LoadBadge({ load }: { load: LoadLevel }) {
@@ -42,12 +42,13 @@ function LoadBadge({ load }: { load: LoadLevel }) {
 interface RoomCardProps {
   room: Room
   onDone: (roomId: string) => Promise<void>
+  assignmentMode: "auto" | "suggest"
   pendingSuggestion: RebalanceSuggestPayload | null
   onAcceptSuggestion: (s: RebalanceSuggestPayload) => Promise<void>
   onDeclineSuggestion: (s: RebalanceSuggestPayload) => void
 }
 
-export function RoomCard({ room, onDone, pendingSuggestion, onAcceptSuggestion, onDeclineSuggestion }: RoomCardProps) {
+export function RoomCard({ room, onDone, assignmentMode, pendingSuggestion, onAcceptSuggestion, onDeclineSuggestion }: RoomCardProps) {
   const [processing, setProcessing] = useState(false)
   const [accepting, setAccepting] = useState(false)
 
@@ -158,25 +159,31 @@ export function RoomCard({ room, onDone, pendingSuggestion, onAcceptSuggestion, 
             {room.queue.slice(0, 5).map((p, i) => {
               const isSuggested = pendingSuggestion?.patientId === p.id
               return (
-                <div key={p.id} className="flex flex-col gap-1">
+                <div key={`${p.id}-${i}`} className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span className="w-4 font-mono text-[11px] text-[#94A3B8]">{i + 1}.</span>
                     <span className="text-[12px]">{typeIcon(p.type)}</span>
                     <span className={cn("font-sans text-[12px]", isSuggested ? "font-medium text-[#D97706]" : "text-[#64748B]")}>
                       {p.name}
                     </span>
-                    <span className="ml-auto font-mono text-[10px] text-[#94A3B8]">
+                    <span className="ml-auto font-mono text-[10px] text-[#94A3B8] flex gap-2">
                       {isSuggested
                         ? <span className="rounded bg-[#FEF3C7] px-1.5 py-0.5 text-[#D97706]">⚡ AI</span>
-                        : p.estFinishMin ? fmtEst(p.estFinishMin) : null}
+                        : (
+                          <>
+                            {p.waitMin !== undefined && <span>⏱ {p.waitMin}m</span>}
+                            {p.estFinishMin !== undefined && <span>🏁 {fmtEst(p.estFinishMin)}</span>}
+                          </>
+                        )
+                      }
                     </span>
                   </div>
-                  {isSuggested && pendingSuggestion && (
+                  {isSuggested && pendingSuggestion && assignmentMode === "suggest" && (
                     <div
                       className="ml-5 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-2.5 py-2"
                     >
                       <p className="mb-1.5 font-sans text-[11px] text-[#92400E]">
-                        Chuyển sang <span className="font-semibold">{pendingSuggestion.toRoomName}</span>?
+                        Please proceed to <span className="font-semibold">{pendingSuggestion.toRoomName}</span>?
                       </p>
                       {pendingSuggestion.reason && (
                         <p className="mb-2 font-sans text-[11px] italic text-[#B45309]">
@@ -194,7 +201,7 @@ export function RoomCard({ room, onDone, pendingSuggestion, onAcceptSuggestion, 
                           className="flex-1 rounded py-1 font-sans text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                           style={{ backgroundColor: "#16A34A" }}
                         >
-                          {accepting ? "…" : "✓ Đồng ý"}
+                          {accepting ? "…" : "✓ Accept"}
                         </button>
                         <button
                           disabled={accepting}
