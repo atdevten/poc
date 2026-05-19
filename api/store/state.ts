@@ -107,7 +107,7 @@ const defaultSettings: Settings = {
   allowVipRebalance: false,
   allowNormalRebalance: true,
   maxRebalancePerPatient: 3,
-  aiPrompt: "- Pick exactly 1 patient\n- Prefer longer wait time (fairness)\n- Prefer higher queue position number (less disruptive to move)\n- If two candidates have wait times within 5 minutes of each other, prefer the one with a more urgent or serious medical reason\n- Balance all three factors — do not pick by a single criterion blindly\n- Write a detailed and natural reason in English comparing wait times, queue position, and medical urgency (e.g., 'Although wait times are equal, Laura Davis is selected due to her urgent pre-surgery status and highest queue position, minimizing disruption to the flow of the source room')",
+  aiPrompt: "- Pick exactly 3 patient\n- Prefer longer wait time (fairness)\n- Prefer higher queue position number (less disruptive to move)\n- If two candidates have wait times within 5 minutes of each other, prefer the one with a more urgent or serious medical reason\n- Balance all three factors — do not pick by a single criterion blindly\n- Write a detailed and natural reason in English comparing wait times, queue position, and medical urgency (e.g., 'Although wait times are equal, Laura Davis is selected due to her urgent pre-surgery status and highest queue position, minimizing disruption to the flow of the source room')",
   roomTypes: [
     { id: "bmi", name: "BMI Check", icon: "🏃", openTime: "08:00", closeTime: "17:00", order: 1, avgDurationMin: 5 },
     { id: "blood_test", name: "Blood Test", icon: "🩸", openTime: "08:00", closeTime: "16:00", order: 2, avgDurationMin: 12 },
@@ -172,36 +172,36 @@ function seedDemoData(appState: AppState): void {
 
   const demoPatients: Patient[] = [
     // Blood Test Room 1 — HIGH load
-    makePatient("V001", "Diana Carter",  "vip",    "IN_CONSULTATION", ["bmi"], allRooms, 25, "Routine annual blood panel"),
-    makePatient("N002", "James Miller",  "normal", "WAITING",         ["bmi"], allRooms, 22, "Routine cholesterol check"),
-    makePatient("N003", "Kevin Brown",   "normal", "WAITING",         ["bmi"], allRooms, 21, "Suspected anemia, fatigue for 3 weeks"),
-    makePatient("N004", "Brian Wilson",  "normal", "WAITING",         ["bmi"], allRooms, 20, "Diabetes follow-up, HbA1c check"),
-    makePatient("N005", "Laura Davis",   "normal", "WAITING",         ["bmi"], allRooms, 19, "Pre-surgery blood screening, urgent"),
+    makePatient("V001", "Diana Carter", "vip", "IN_CONSULTATION", ["bmi"], allRooms, 25, "Routine annual blood panel"),
+    makePatient("N002", "James Miller", "normal", "WAITING", ["bmi"], allRooms, 22, "Routine cholesterol check"),
+    makePatient("N003", "Kevin Brown", "normal", "WAITING", ["bmi"], allRooms, 21, "Suspected anemia, fatigue for 3 weeks"),
+    makePatient("N004", "Brian Wilson", "normal", "WAITING", ["bmi"], allRooms, 20, "Diabetes follow-up, HbA1c check"),
+    makePatient("N005", "Laura Davis", "normal", "WAITING", ["bmi"], allRooms, 19, "Pre-surgery blood screening, urgent"),
     // Blood Test Room 2 — MEDIUM load
-    makePatient("N006", "Mark Taylor",   "normal", "IN_CONSULTATION",  ["bmi"], allRooms,  4, "Liver function test, mild jaundice"),
-    makePatient("N007", "Nancy White",   "normal", "WAITING",          ["bmi"], allRooms,  8, "Thyroid hormone level check"),
+    makePatient("N006", "Mark Taylor", "normal", "IN_CONSULTATION", ["bmi"], allRooms, 4, "Liver function test, mild jaundice"),
+    makePatient("N007", "Nancy White", "normal", "WAITING", ["bmi"], allRooms, 8, "Thyroid hormone level check"),
     // Blood Test Room 3 — idle (no one)
     // BMI Room 1 — HIGH load (bmi-2 is idle → triggers rebalance for bmi type)
-    makePatient("N008", "Alice Johnson", "normal", "IN_CONSULTATION",  [],     allRooms, 25, "Annual wellness check"),
-    makePatient("N021", "Tom Baker",     "normal", "WAITING",          [],     allRooms, 19, "Routine BMI tracking"),
-    makePatient("N022", "Sara Connor",   "normal", "WAITING",          [],     allRooms, 18, "Pre-pregnancy health screening"),
-    makePatient("N023", "Mike Chen",     "normal", "WAITING",          [],     allRooms, 17, "Hypertension with dangerously high BMI"),
-    makePatient("N024", "Anna Sousa",    "normal", "WAITING",          [],     allRooms, 16, "Routine BMI tracking"),
+    makePatient("N008", "Alice Johnson", "normal", "IN_CONSULTATION", [], allRooms, 25, "Annual wellness check"),
+    makePatient("N021", "Tom Baker", "normal", "WAITING", [], allRooms, 19, "Routine BMI tracking"),
+    makePatient("N022", "Sara Connor", "normal", "WAITING", [], allRooms, 18, "Pre-pregnancy health screening"),
+    makePatient("N023", "Mike Chen", "normal", "WAITING", [], allRooms, 17, "Hypertension with dangerously high BMI"),
+    makePatient("N024", "Anna Sousa", "normal", "WAITING", [], allRooms, 16, "Routine BMI tracking"),
     // BMI Room 2 — idle (no one)
     // Radiology Room 1 — MEDIUM load
-    makePatient("N009", "Frank Moore",   "normal", "IN_CONSULTATION",  ["bmi", "blood_test"], allRooms,  8, "Chest X-ray, persistent cough"),
-    makePatient("N010", "George Harris", "normal", "WAITING",           ["bmi", "blood_test"], allRooms, 12, "Back pain, suspected disc herniation"),
+    makePatient("N009", "Frank Moore", "normal", "IN_CONSULTATION", ["bmi", "blood_test"], allRooms, 8, "Chest X-ray, persistent cough"),
+    makePatient("N010", "George Harris", "normal", "WAITING", ["bmi", "blood_test"], allRooms, 12, "Back pain, suspected disc herniation"),
     // Lobby patients
-    makePatient("E011", "Chris Evans",   "emergency", "LOBBY",         [],                   allRooms,  2, "Acute chest pain, possible MI"),
-    makePatient("V012", "Diana Prince",  "vip",    "LOBBY",            ["bmi"],               allRooms,  5, "Executive health screening"),
-    makePatient("N013", "Paul Martin",   "normal", "LOBBY",            [],                   allRooms, 11, "Routine annual check-up"),
-    makePatient("N014", "Carol Smith",   "normal", "LOBBY",            ["bmi", "blood_test"], allRooms, 20, "Joint pain, suspected arthritis"),
+    makePatient("E011", "Chris Evans", "emergency", "LOBBY", [], allRooms, 2, "Acute chest pain, possible MI"),
+    makePatient("V012", "Diana Prince", "vip", "LOBBY", ["bmi"], allRooms, 5, "Executive health screening"),
+    makePatient("N013", "Paul Martin", "normal", "LOBBY", [], allRooms, 11, "Routine annual check-up"),
+    makePatient("N014", "Carol Smith", "normal", "LOBBY", ["bmi", "blood_test"], allRooms, 20, "Joint pain, suspected arthritis"),
     // Blood Test Room 3 — LOW load (has some queue)
-    makePatient("N030", "Rachel Green",  "normal", "WAITING",          ["bmi"],               allRooms, 12, "Routine blood glucose check"),
-    makePatient("N031", "David Kim",     "normal", "WAITING",          ["bmi"],               allRooms,  9, "Iron deficiency follow-up"),
+    makePatient("N030", "Rachel Green", "normal", "WAITING", ["bmi"], allRooms, 12, "Routine blood glucose check"),
+    makePatient("N031", "David Kim", "normal", "WAITING", ["bmi"], allRooms, 9, "Iron deficiency follow-up"),
     // BMI Room 2 — LOW load (has some queue)
-    makePatient("N032", "Sophie Lane",   "normal", "WAITING",          [],                   allRooms, 11, "Weight management consult"),
-    makePatient("N033", "Jason Wu",      "normal", "WAITING",          [],                   allRooms,  7, "Post-diet BMI check"),
+    makePatient("N032", "Sophie Lane", "normal", "WAITING", [], allRooms, 11, "Weight management consult"),
+    makePatient("N033", "Jason Wu", "normal", "WAITING", [], allRooms, 7, "Post-diet BMI check"),
   ]
 
   // Register all patients

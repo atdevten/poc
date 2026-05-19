@@ -54,7 +54,13 @@ export async function tryRebalance(
 
   if (!overloadedRoom) return { applied: false }
 
-  const candidates = filterCandidates(overloadedRoom)
+  const candidates = filterCandidates(overloadedRoom).filter((patient) => {
+    const oldWait = (patient.queuePosition ?? 1) * overloadedRoom.avgDurationMin
+    const newWait = destRoom.currentPatient
+      ? (destRoom.queue.length + 1) * destRoom.avgDurationMin
+      : 0
+    return oldWait > newWait
+  })
   if (candidates.length === 0) return { applied: false }
 
   const { selectedId, reason, aiUsed } = await selectCandidate(
@@ -66,20 +72,28 @@ export async function tryRebalance(
 
   const patient = candidates.find((c) => c.id === selectedId)!
 
-  console.log(
-    `[rebalance] trigger=${trigger} mode=${settings.mode} ai=${aiUsed}`,
-    `| patient=${patient.name} (${patient.id})`,
-    `| ${overloadedRoom.name} → ${destRoom.name}`,
-    `| reason: ${reason}`,
-  )
-
   const oldWait = (patient.queuePosition ?? 1) * overloadedRoom.avgDurationMin
   const newWait = destRoom.currentPatient
     ? (destRoom.queue.length + 1) * destRoom.avgDurationMin
     : 0
   const timeSavedMin = Math.max(0, oldWait - newWait)
 
-  if (timeSavedMin === 0) return { applied: false }
+  if (timeSavedMin === 0) {
+    console.log(
+      `[rebalance] trigger=${trigger} mode=${settings.mode} ai=${aiUsed}`,
+      `| patient=${patient.name} (${patient.id})`,
+      `| ${overloadedRoom.name} → ${destRoom.name}`,
+      `| aborted: saved time is 0 min`,
+    )
+    return { applied: false }
+  }
+
+  console.log(
+    `[rebalance] trigger=${trigger} mode=${settings.mode} ai=${aiUsed}`,
+    `| patient=${patient.name} (${patient.id})`,
+    `| ${overloadedRoom.name} → ${destRoom.name}`,
+    `| reason: ${reason}`,
+  )
 
   if (settings.mode === "suggest") {
     broadcast("REBALANCE_SUGGEST", {

@@ -612,7 +612,7 @@ User prompt (dynamic):
    {candidates as JSON array with id, name, waitMin, queuePosition}
 
    Rules:
-   - Pick exactly 1 patient
+   - Pick exactly 3 patient
    - Prefer longer wait time (fairness)
    - Prefer higher queue position number (less disruptive to move)
    - Balance both factors — do not pick longest wait blindly if they are next in line

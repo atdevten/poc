@@ -19,7 +19,7 @@ const DEFAULT_ROUTING: RoutingRulesState = {
   emergencyBannerAlert: true,
   vipAllowRebalance: false,
   normalAllowRebalance: true,
-  aiPrompt: "- Pick exactly 1 patient\n- Prefer longer wait time (fairness)\n- Prefer higher queue position number (less disruptive to move)\n- If two candidates have wait times within 5 minutes of each other, prefer the one with a more urgent or serious medical reason\n- Balance all three factors — do not pick by a single criterion blindly",
+  aiPrompt: "- Pick exactly 3 patient\n- Prefer longer wait time (fairness)\n- Prefer higher queue position number (less disruptive to move)\n- If two candidates have wait times within 5 minutes of each other, prefer the one with a more urgent or serious medical reason\n- Balance all three factors — do not pick by a single criterion blindly",
 }
 
 function beToRouting(s: BESettings): RoutingRulesState {
