@@ -8,6 +8,6 @@ bindings = [{ name = "HOSPITAL", class_name = "HospitalDO" }]
 
 [[migrations]]
 tag = "v1"
-new_classes = ["HospitalDO"]
+new_sqlite_classes = ["HospitalDO"]
 
 # Set via: wrangler secret put GEMINI_API_KEY
