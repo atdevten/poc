@@ -1,45 +1,77 @@
 import { Hono } from "hono"
 import { cors } from "hono/cors"
-import { createBunWebSocket } from "hono/bun"
-import { addConnection, removeConnection } from "./ws/broadcast"
+import { DurableObject } from "cloudflare:workers"
+import { setDOContext, addConnection, removeConnection } from "./ws/broadcast"
+import { setEnv } from "./engine/gemini"
+import { handleAlarm } from "./engine/scheduler"
 import roomsRouter from "./routes/rooms"
 import patientsRouter from "./routes/patients"
 import doneRouter from "./routes/done"
 import settingsRouter from "./routes/settings"
-import { startScheduler } from "./engine/scheduler"
 
-const app = new Hono()
-const { upgradeWebSocket, websocket } = createBunWebSocket()
+export interface Env {
+  HOSPITAL: DurableObjectNamespace
+  GEMINI_API_KEY: string
+}
 
-app.use("*", cors({ origin: "*" }))
+function createApp() {
+  const app = new Hono()
+  app.use("*", cors({ origin: "*" }))
+  app.route("/api", roomsRouter)
+  app.route("/api", patientsRouter)
+  app.route("/api", doneRouter)
+  app.route("/api", settingsRouter)
+  return app
+}
 
-app.route("/api", roomsRouter)
-app.route("/api", patientsRouter)
-app.route("/api", doneRouter)
-app.route("/api", settingsRouter)
+export class HospitalDO extends DurableObject<Env> {
+  private app: Hono
 
-app.get(
-  "/ws",
-  upgradeWebSocket(() => ({
-    onOpen(_, ws) {
-      addConnection(ws.raw as WebSocket)
-    },
-    onClose(_, ws) {
-      removeConnection(ws.raw as WebSocket)
-    },
-    onError(_, ws) {
-      removeConnection(ws.raw as WebSocket)
-    },
-  })),
-)
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env)
+    setDOContext(ctx)
+    setEnv(env)
+    this.app = createApp()
+    ctx.storage.getAlarm().then((alarm) => {
+      if (!alarm) ctx.storage.setAlarm(Date.now() + 60_000)
+    })
+  }
 
-startScheduler()
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url)
 
-const PORT = Number(process.env.PORT ?? 3001)
-console.log(`API running on http://localhost:${PORT}`)
+    if (url.pathname === "/ws") {
+      const upgradeHeader = request.headers.get("Upgrade")
+      if (!upgradeHeader || upgradeHeader.toLowerCase() !== "websocket") {
+        return new Response("Expected WebSocket", { status: 426 })
+      }
+      const { 0: client, 1: server } = new WebSocketPair()
+      this.ctx.acceptWebSocket(server)
+      addConnection(server)
+      return new Response(null, { status: 101, webSocket: client })
+    }
+
+    return this.app.fetch(request)
+  }
+
+  async webSocketClose(ws: WebSocket) {
+    removeConnection(ws)
+  }
+
+  async webSocketError(ws: WebSocket) {
+    removeConnection(ws)
+  }
+
+  async alarm() {
+    await handleAlarm()
+    await this.ctx.storage.setAlarm(Date.now() + 60_000)
+  }
+}
 
 export default {
-  port: PORT,
-  fetch: app.fetch,
-  websocket,
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const id = env.HOSPITAL.idFromName("hospital")
+    const stub = env.HOSPITAL.get(id)
+    return stub.fetch(request)
+  },
 }

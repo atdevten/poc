@@ -44,7 +44,7 @@ app.post("/done/:roomId", async (c) => {
     broadcast("ROOM_UPDATED", { roomId: room.id, room: serializeRoom(room) })
     // Queue is now shorter — fill it from lobby immediately
     fillEmptyQueuesFromLobby()
-    void setImmediate(() => checkPeriodicRebalance(room.id))
+    void checkPeriodicRebalance(room.id)
     return c.json({ completedPatient, nextPatient: next, rebalanceSuggest: null })
   }
 
@@ -56,7 +56,7 @@ app.post("/done/:roomId", async (c) => {
     broadcast("LOBBY_UPDATED", { patients: state.lobby.map(serializePatient), count: state.lobby.length })
     broadcast("ROOM_UPDATED", { roomId: room.id, room: serializeRoom(room) })
     // Trigger rebalance for all OTHER rooms in background
-    void setImmediate(() => checkPeriodicRebalance(room.id))
+    void checkPeriodicRebalance(room.id)
     return c.json({ completedPatient, nextPatient: lobbyPatient, rebalanceSuggest: null })
   }
 
@@ -81,14 +81,14 @@ app.post("/done/:roomId", async (c) => {
       assignPatient(room, next)
     }
     broadcast("ROOM_UPDATED", { roomId: room.id, room: serializeRoom(room) })
-    void setImmediate(() => checkPeriodicRebalance(room.id))
+    void checkPeriodicRebalance(room.id)
     return c.json({ completedPatient, nextPatient: next ?? null, rebalanceSuggest: null })
   }
 
   // STEP 4 — Idle
   room.status = "idle"
   broadcast("ROOM_UPDATED", { roomId: room.id, room: serializeRoom(room) })
-  void setImmediate(() => checkPeriodicRebalance(room.id))
+  void checkPeriodicRebalance(room.id)
   return c.json({
     completedPatient,
     nextPatient: null,

@@ -3,23 +3,29 @@ import { state } from "../store/state"
 import { calculateLoad, calcEstFinishMin } from "../engine/queue"
 import type { Patient, Room } from "../store/state"
 
-const connections = new Set<{ send: (data: string) => void; readyState: number }>()
+let doCtx: { getWebSockets(): WebSocket[] } | null = null
 
-export function addConnection(ws: { send: (data: string) => void; readyState: number }) {
-  connections.add(ws)
+export function setDOContext(ctx: { getWebSockets(): WebSocket[] }) {
+  doCtx = ctx
+}
+
+export function addConnection(ws: WebSocket) {
   ws.send(JSON.stringify({ type: "SNAPSHOT", payload: buildSnapshot(), timestamp: new Date() }))
 }
 
-export function removeConnection(ws: { send: (data: string) => void; readyState: number }) {
-  connections.delete(ws)
+export function removeConnection(_ws: WebSocket) {
+  // DO manages WebSocket lifecycle automatically
 }
 
 export function broadcast(type: WSEventType, payload: unknown) {
+  if (!doCtx) return
   const event: WSEvent = { type, payload, timestamp: new Date() }
   const msg = JSON.stringify(event)
-  for (const ws of connections) {
-    if (ws.readyState === 1) {
-      try { ws.send(msg) } catch { connections.delete(ws) }
+  for (const ws of doCtx.getWebSockets()) {
+    try {
+      ws.send(msg)
+    } catch {
+      // DO handles cleanup
     }
   }
 }

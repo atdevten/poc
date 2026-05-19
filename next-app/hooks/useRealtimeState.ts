@@ -283,7 +283,7 @@ export function useRealtimeState() {
       body: JSON.stringify(settings),
     })
     const saved = await res.json() as BESettings
-    if (saved.assignmentMode) setAssignmentMode(saved.assignmentMode as "auto" | "suggest")
+    if (saved.mode) setAssignmentMode(saved.mode)
     return saved
   }, [])
 

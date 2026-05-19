@@ -25,7 +25,7 @@ app.post("/patients/add", async (c) => {
     currentRoomId: null,
     completedRooms: [],
     remainingRooms: [...allRoomTypes],
-    rebalancedToday: false,
+    rebalanceCount: 0,
     queuePosition: null,
     medicalReason: body.medicalReason ?? "Not specified",
   }

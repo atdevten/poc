@@ -1,5 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { state, type Patient, type Room } from "../store/state"
+import type { Env } from "../index"
+
+let cfEnv: Env | null = null
+
+export function setEnv(env: Env) {
+  cfEnv = env
+}
 
 interface GeminiResult {
   selectedId: string
@@ -24,7 +31,7 @@ export async function selectCandidate(
   destRoom: Room,
   thresholdMin: number,
 ): Promise<GeminiResult> {
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = cfEnv?.GEMINI_API_KEY
   if (!apiKey || candidates.length < 2) {
     return fallback(candidates)
   }

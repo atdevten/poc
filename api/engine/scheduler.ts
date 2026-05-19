@@ -3,10 +3,8 @@ import { calculateLoad, getFromLobby, insertToQueue, removeFromLobby } from "./q
 import { tryRebalance } from "./rebalance"
 import { broadcast, serializePatient, serializeRoom } from "../ws/broadcast"
 
-export function startScheduler() {
-  setInterval(() => {
-    checkPeriodicRebalance()
-  }, 60_000)
+export async function handleAlarm() {
+  await checkPeriodicRebalance()
 }
 
 // Pull lobby patients into rooms that are idle or have empty queues.
