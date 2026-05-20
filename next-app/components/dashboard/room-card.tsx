@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { type Room, type PatientType, type LoadLevel } from "@/lib/mock-data"
 import type { RebalanceSuggestPayload } from "@/lib/api-types"
@@ -81,7 +82,19 @@ export function RoomCard({ room, onDone, assignmentMode, pendingSuggestion, onAc
           style={{ backgroundColor: "#F8FAFC" }}
         >
           <span className="font-mono text-[12px] text-[#94A3B8]">{room.name}</span>
-          <LoadBadge load="IDLE" />
+          <div className="flex items-center gap-1.5">
+            <LoadBadge load="IDLE" />
+            <Link
+              href={`/${room.id.replace(/-/g, "_")}`}
+              target="_blank"
+              className="flex h-5 w-5 items-center justify-center rounded text-[#94A3B8] transition-colors hover:bg-[#E2E8F0] hover:text-[#64748B]"
+              title="View queue"
+            >
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 11L11 1M11 1H5M11 1V7" />
+              </svg>
+            </Link>
+          </div>
         </div>
         <div className="flex flex-1 items-center justify-center px-4 py-6">
           <p className="font-sans text-[12px] italic text-[#94A3B8]">Waiting for next patient</p>
@@ -111,7 +124,19 @@ export function RoomCard({ room, onDone, assignmentMode, pendingSuggestion, onAc
         style={{ backgroundColor: "#F1F5F9" }}
       >
         <span className="font-sans text-[13px] font-medium text-[#0F172A]">{room.name}</span>
-        <LoadBadge load={room.load} />
+        <div className="flex items-center gap-1.5">
+          <LoadBadge load={room.load} />
+          <Link
+            href={`/${room.id.replace(/-/g, "_")}`}
+            target="_blank"
+            className="flex h-5 w-5 items-center justify-center rounded text-[#94A3B8] transition-colors hover:bg-[#CBD5E1] hover:text-[#64748B]"
+            title="View queue"
+          >
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 11L11 1M11 1H5M11 1V7" />
+            </svg>
+          </Link>
+        </div>
       </div>
 
       {/* Load time */}
