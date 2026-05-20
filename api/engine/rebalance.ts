@@ -1,7 +1,7 @@
 import type { AppState, Patient, RebalanceLog, Room } from "../store/state"
 import { state } from "../store/state"
 import { calculateLoad, insertToQueue, removeFromQueue, getNextFromQueue } from "./queue"
-import { selectCandidate } from "./gemini"
+import { selectCandidate, selectCandidatesBatch, type BatchPair } from "./gemini"
 import { broadcast, hasActiveConnections, serializeRoom } from "../ws/broadcast"
 
 export interface RebalanceResult {
@@ -120,6 +120,134 @@ export async function tryRebalance(
 
   // mode=auto: apply immediately
   return applyRebalance(appState, patient.id, overloadedRoom.id, destRoom.id, reason, aiUsed, trigger)
+}
+
+export function buildRebalancePair(
+  appState: AppState,
+  destRoom: Room,
+): { sourceRoom: Room; candidates: Patient[] } | null {
+  const { settings } = appState
+  const sameTypeRooms = [...appState.rooms.values()].filter(
+    (r) => r.roomType === destRoom.roomType && r.id !== destRoom.id && r.status !== "closed",
+  )
+  if (sameTypeRooms.length === 0) return null
+
+  const destLoad = calculateLoad(destRoom)
+  const overloadedRoom = sameTypeRooms
+    .filter((r) => calculateLoad(r) - destLoad > settings.rebalanceThresholdMin)
+    .sort((a, b) => calculateLoad(b) - calculateLoad(a))[0]
+
+  if (!overloadedRoom) return null
+
+  const candidates = filterCandidates(overloadedRoom).filter((patient) => {
+    const oldWait = (patient.queuePosition ?? 1) * overloadedRoom.avgDurationMin
+    const newWait = destRoom.currentPatient ? (destRoom.queue.length + 1) * destRoom.avgDurationMin : 0
+    return oldWait > newWait
+  })
+
+  if (candidates.length === 0) return null
+  return { sourceRoom: overloadedRoom, candidates }
+}
+
+export async function tryBatchRebalance(
+  appState: AppState,
+  destRooms: Room[],
+  trigger: RebalanceLog["trigger"],
+): Promise<RebalanceResult[]> {
+  const pairs: Array<{ destRoom: Room; sourceRoom: Room; candidates: Patient[] }> = []
+
+  for (const destRoom of destRooms) {
+    const pair = buildRebalancePair(appState, destRoom)
+    if (pair) pairs.push({ destRoom, ...pair })
+  }
+
+  if (pairs.length === 0) return []
+
+  let assignments: Array<{ pairIdx: number; selectedId: string; reason: string; aiUsed: boolean }>
+
+  if (hasActiveConnections() && pairs.some((p) => p.candidates.length >= 2)) {
+    const batchPairs: BatchPair[] = pairs.map((p, i) => ({
+      pairId: String(i),
+      sourceRoom: p.sourceRoom,
+      destRoom: p.destRoom,
+      candidates: p.candidates,
+      thresholdMin: appState.settings.rebalanceThresholdMin,
+    }))
+    const results = await selectCandidatesBatch(batchPairs)
+    assignments = results.map((r) => ({
+      pairIdx: Number(r.pairId),
+      selectedId: r.selectedId,
+      reason: r.reason,
+      aiUsed: r.aiUsed,
+    }))
+  } else {
+    assignments = pairs.map((p, i) => ({
+      pairIdx: i,
+      selectedId: p.candidates[0].id,
+      reason: "Auto-selected longest-waiting patient",
+      aiUsed: false,
+    }))
+  }
+
+  const results: RebalanceResult[] = []
+  for (const { pairIdx, selectedId, reason, aiUsed } of assignments) {
+    const { destRoom, sourceRoom, candidates } = pairs[pairIdx]
+    const patient = candidates.find((c) => c.id === selectedId)
+    if (!patient) continue
+
+    const oldWait = (patient.queuePosition ?? 1) * sourceRoom.avgDurationMin
+    const newWait = destRoom.currentPatient ? (destRoom.queue.length + 1) * destRoom.avgDurationMin : 0
+    const timeSavedMin = Math.max(0, oldWait - newWait)
+
+    if (timeSavedMin === 0) {
+      console.log(
+        `[rebalance] batch trigger=${trigger} ai=${aiUsed}`,
+        `| patient=${patient.name} (${patient.id})`,
+        `| ${sourceRoom.name} → ${destRoom.name}`,
+        `| aborted: saved time is 0 min`,
+      )
+      continue
+    }
+
+    console.log(
+      `[rebalance] batch trigger=${trigger} mode=${appState.settings.mode} ai=${aiUsed}`,
+      `| patient=${patient.name} (${patient.id})`,
+      `| ${sourceRoom.name} → ${destRoom.name}`,
+      `| reason: ${reason}`,
+    )
+
+    if (appState.settings.mode === "suggest") {
+      broadcast("REBALANCE_SUGGEST", {
+        patientId: patient.id,
+        patientName: patient.name,
+        fromRoomId: sourceRoom.id,
+        fromRoomName: sourceRoom.name,
+        toRoomId: destRoom.id,
+        toRoomName: destRoom.name,
+        reason,
+        aiUsed,
+        timeSavedMin,
+        expiresIn: 30,
+      })
+      results.push({
+        applied: false,
+        suggest: {
+          patientId: patient.id,
+          patientName: patient.name,
+          fromRoomId: sourceRoom.id,
+          toRoomId: destRoom.id,
+          reason,
+          aiUsed,
+        },
+      })
+      continue
+    }
+
+    const result = applyRebalance(appState, patient.id, sourceRoom.id, destRoom.id, reason, aiUsed, trigger)
+    results.push(result)
+  }
+
+  return results
 }
 
 export function applyRebalance(

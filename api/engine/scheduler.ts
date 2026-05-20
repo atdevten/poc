@@ -1,7 +1,8 @@
 import { state } from "../store/state"
 import { calculateLoad, getFromLobby, insertToQueue, removeFromLobby } from "./queue"
-import { tryRebalance } from "./rebalance"
+import { tryBatchRebalance } from "./rebalance"
 import { broadcast, serializePatient, serializeRoom } from "../ws/broadcast"
+import type { Room } from "../store/state"
 
 export async function handleAlarm() {
   await checkPeriodicRebalance()
@@ -48,23 +49,24 @@ export function fillEmptyQueuesFromLobby(): void {
 
 export async function checkPeriodicRebalance(excludeRoomId?: string) {
   const roomTypeIds = [...new Set([...state.rooms.values()].map((r) => r.roomType))]
-  const maxMoves = state.settings.maxRebalancePerPatient
 
-  await Promise.all(roomTypeIds.map(async (roomTypeId) => {
-    for (let i = 0; i < maxMoves; i++) {
-      const rooms = [...state.rooms.values()].filter(
-        (r) => r.roomType === roomTypeId && r.status !== "closed" && r.id !== excludeRoomId,
-      )
-      if (rooms.length < 2) break
+  const destRooms: Room[] = []
+  for (const roomTypeId of roomTypeIds) {
+    const rooms = [...state.rooms.values()].filter(
+      (r) => r.roomType === roomTypeId && r.status !== "closed" && r.id !== excludeRoomId,
+    )
+    if (rooms.length < 2) continue
 
-      const loads = rooms.map((r) => calculateLoad(r))
-      const maxLoad = Math.max(...loads)
-      const minLoad = Math.min(...loads)
-      if (maxLoad - minLoad <= state.settings.rebalanceThresholdMin) break
+    const loads = rooms.map((r) => calculateLoad(r))
+    const maxLoad = Math.max(...loads)
+    const minLoad = Math.min(...loads)
+    if (maxLoad - minLoad <= state.settings.rebalanceThresholdMin) continue
 
-      const destRoom = rooms.find((r) => calculateLoad(r) === minLoad)!
-      const result = await tryRebalance(state, destRoom, "periodic")
-      if (!result.applied) break
-    }
-  }))
+    const destRoom = rooms.find((r) => calculateLoad(r) === minLoad)!
+    destRooms.push(destRoom)
+  }
+
+  if (destRooms.length > 0) {
+    await tryBatchRebalance(state, destRooms, "periodic")
+  }
 }

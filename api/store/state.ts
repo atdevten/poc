@@ -179,9 +179,9 @@ export function seedDemoData(appState: AppState): void {
     makePatient("N003", "Kevin Brown", "normal", "WAITING", ["bmi"], allRooms, 21, "Suspected anemia, fatigue for 3 weeks"),
     makePatient("N004", "Brian Wilson", "normal", "WAITING", ["bmi"], allRooms, 20, "Diabetes follow-up, HbA1c check"),
     makePatient("N005", "Laura Davis", "normal", "WAITING", ["bmi"], allRooms, 19, "Pre-surgery blood screening, urgent"),
-    // Blood Test Room 2 — MEDIUM load
-    makePatient("N006", "Mark Taylor", "normal", "IN_CONSULTATION", ["bmi"], allRooms, 4, "Liver function test, mild jaundice"),
-    makePatient("N007", "Nancy White", "normal", "WAITING", ["bmi"], allRooms, 8, "Thyroid hormone level check"),
+    // Blood Test Room 2 — idle (triggers rebalance from room 1)
+    makePatient("N006", "Mark Taylor", "normal", "LOBBY", ["bmi"], allRooms, 14, "Liver function test, mild jaundice"),
+    makePatient("N007", "Nancy White", "normal", "LOBBY", ["bmi"], allRooms, 10, "Thyroid hormone level check"),
     // Blood Test Room 3 — idle (no one)
     // BMI Room 1 — HIGH load (bmi-2 is idle → triggers rebalance for bmi type)
     makePatient("N008", "Alice Johnson", "normal", "IN_CONSULTATION", [], allRooms, 25, "Annual wellness check"),
@@ -233,9 +233,6 @@ export function seedDemoData(appState: AppState): void {
   addToQueue("blood_test-1", appState.patients.get("N004")!, 3)
   addToQueue("blood_test-1", appState.patients.get("N005")!, 4)
 
-  assignCurrent("blood_test-2", appState.patients.get("N006")!)
-  addToQueue("blood_test-2", appState.patients.get("N007")!, 1)
-
   assignCurrent("bmi-1", appState.patients.get("N008")!)
   addToQueue("bmi-1", appState.patients.get("N021")!, 1)
   addToQueue("bmi-1", appState.patients.get("N022")!, 2)
@@ -252,7 +249,7 @@ export function seedDemoData(appState: AppState): void {
   addToQueue("bmi-2", appState.patients.get("N033")!, 2)
 
   // Lobby (priority order: emergency first, then vip, then normal)
-  for (const id of ["E011", "V012", "N013", "N014"]) {
+  for (const id of ["E011", "V012", "N006", "N007", "N013", "N014"]) {
     const p = appState.patients.get(id)!
     p.lobbySince = new Date(Date.now() - (demoPatients.find((x) => x.id === id)!.checkedInAt.getTime() - Date.now()) * -1)
     appState.lobby.push(p)
