@@ -4,6 +4,7 @@ import { DurableObject } from "cloudflare:workers"
 import { setDOContext, addConnection, removeConnection } from "./ws/broadcast"
 import { setEnv } from "./engine/gemini"
 import { handleAlarm } from "./engine/scheduler"
+import { state, seedDemoData } from "./store/state"
 import roomsRouter from "./routes/rooms"
 import patientsRouter from "./routes/patients"
 import doneRouter from "./routes/done"
@@ -32,6 +33,7 @@ export class HospitalDO extends DurableObject<Env> {
     setDOContext(ctx)
     setEnv(env)
     this.app = createApp()
+    seedDemoData(state)
     ctx.storage.getAlarm().then((alarm) => {
       if (!alarm) ctx.storage.setAlarm(Date.now() + 60_000)
     })

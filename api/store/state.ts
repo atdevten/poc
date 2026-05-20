@@ -167,7 +167,7 @@ function makePatient(
   }
 }
 
-function seedDemoData(appState: AppState): void {
+export function seedDemoData(appState: AppState): void {
   const allRooms = defaultSettings.roomTypes.map((rt) => rt.id)
 
   const demoPatients: Patient[] = [
@@ -293,8 +293,6 @@ export const state: AppState = {
   settings: defaultSettings,
   logs: [],
 }
-
-seedDemoData(state)
 
 export function resetState(): void {
   state.patients.clear()
