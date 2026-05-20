@@ -42,6 +42,7 @@ function recalculatePositions(room: Room) {
 }
 
 export function insertToQueue(room: Room, patient: Patient): void {
+  if (room.queue.some((p) => p.id === patient.id)) return
   if (patient.type === "emergency") {
     const idx = room.queue.findIndex((p) => p.type !== "emergency")
     if (idx === -1) room.queue.push(patient)
@@ -71,6 +72,8 @@ export function getNextFromQueue(room: Room): Patient | null {
 }
 
 export function insertToLobby(appState: AppState, patient: Patient): void {
+  if (appState.lobby.some((p) => p.id === patient.id)) return
+
   patient.status = "LOBBY"
   patient.lobbySince = new Date()
   patient.currentRoomId = null

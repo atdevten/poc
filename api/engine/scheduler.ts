@@ -32,7 +32,7 @@ export function fillEmptyQueuesFromLobby(): void {
       insertToQueue(room, patient)
     } else {
       // Room has queue — put patient back and skip
-      state.lobby.unshift(patient)
+      if (!state.lobby.some((p) => p.id === patient.id)) state.lobby.unshift(patient)
       continue
     }
 
