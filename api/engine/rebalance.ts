@@ -2,7 +2,7 @@ import type { AppState, Patient, RebalanceLog, Room } from "../store/state"
 import { state } from "../store/state"
 import { calculateLoad, insertToQueue, removeFromQueue, getNextFromQueue } from "./queue"
 import { selectCandidate } from "./gemini"
-import { broadcast, serializeRoom } from "../ws/broadcast"
+import { broadcast, hasActiveConnections, serializeRoom } from "../ws/broadcast"
 
 export interface RebalanceResult {
   applied: boolean
@@ -63,12 +63,9 @@ export async function tryRebalance(
   })
   if (candidates.length === 0) return { applied: false }
 
-  const { selectedId, reason, aiUsed } = await selectCandidate(
-    candidates,
-    overloadedRoom,
-    destRoom,
-    settings.rebalanceThresholdMin,
-  )
+  const { selectedId, reason, aiUsed } = hasActiveConnections()
+    ? await selectCandidate(candidates, overloadedRoom, destRoom, settings.rebalanceThresholdMin)
+    : { selectedId: candidates[0].id, reason: "Auto-selected longest-waiting patient", aiUsed: false }
 
   const patient = candidates.find((c) => c.id === selectedId)!
 

@@ -17,6 +17,10 @@ export function removeConnection(_ws: WebSocket) {
   // DO manages WebSocket lifecycle automatically
 }
 
+export function hasActiveConnections(): boolean {
+  return !!doCtx && doCtx.getWebSockets().length > 0
+}
+
 export function broadcast(type: WSEventType, payload: unknown) {
   if (!doCtx) return
   const event: WSEvent = { type, payload, timestamp: new Date() }
