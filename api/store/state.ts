@@ -168,6 +168,8 @@ function makePatient(
 }
 
 export function seedDemoData(appState: AppState): void {
+  if (appState.patients.size > 0) return  // already seeded — prevent duplicates on constructor re-call
+
   const allRooms = defaultSettings.roomTypes.map((rt) => rt.id)
 
   const demoPatients: Patient[] = [
