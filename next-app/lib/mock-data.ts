@@ -23,6 +23,8 @@ export interface RoomPatient {
   minutesAgo?: number
   estFinishMin?: number
   waitMin?: number
+  status?: string
+  isMissing?: boolean
 }
 
 export interface Room {
@@ -99,6 +101,7 @@ export const INITIAL_ROOMS: RoomTypeGroup[] = [
         queue: [
           { id: "N005", name: "Hoang Van E", type: "normal" },
           { id: "N006", name: "Le Van F", type: "normal" },
+          { id: "N999", name: "John Smith", type: "normal", status: "MISSING", isMissing: true },
           { id: "N010", name: "Ngo Van K", type: "normal" },
           { id: "N011", name: "Ly Thi L", type: "normal" },
         ],
@@ -110,16 +113,22 @@ export const INITIAL_ROOMS: RoomTypeGroup[] = [
         load: "MEDIUM",
         loadMin: 20,
         current: { id: "N012", name: "Pham Van M", type: "normal", minutesAgo: 4 },
-        queue: [{ id: "N013", name: "Vo Thi N", type: "normal" }],
+        queue: [
+          { id: "N013", name: "Vo Thi N", type: "normal" },
+          { id: "M002", name: "Alice Johnson", type: "normal", status: "MISSING", isMissing: true },
+        ],
       },
       {
         id: "bt-3",
         name: "Room 3",
         roomType: "Blood Test",
-        load: "IDLE",
-        loadMin: 0,
+        load: "LOW",
+        loadMin: 10,
         current: null,
-        queue: [],
+        queue: [
+          { id: "N030", name: "Rachel Green", type: "normal" },
+          { id: "M003", name: "Bob Miller", type: "vip", status: "MISSING", isMissing: true },
+        ],
       },
     ],
   },
@@ -134,16 +143,23 @@ export const INITIAL_ROOMS: RoomTypeGroup[] = [
         load: "LOW",
         loadMin: 12,
         current: { id: "N003", name: "Nguyen Van A", type: "normal", minutesAgo: 3 },
-        queue: [],
+        queue: [
+          { id: "N021", name: "Tom Baker", type: "normal" },
+          { id: "M004", name: "David Davis", type: "normal", status: "MISSING", isMissing: true },
+          { id: "N022", name: "Sara Connor", type: "normal" },
+        ],
       },
       {
         id: "bmi-2",
         name: "Room 2",
         roomType: "BMI Check",
-        load: "IDLE",
-        loadMin: 0,
-        current: null,
-        queue: [],
+        load: "MEDIUM",
+        loadMin: 15,
+        current: { id: "N032", name: "Sophie Lane", type: "normal", minutesAgo: 7 },
+        queue: [
+          { id: "M005", name: "Emma Wilson", type: "emergency", status: "MISSING", isMissing: true },
+          { id: "N033", name: "Jason Wu", type: "normal" },
+        ],
       },
     ],
   },
@@ -157,12 +173,16 @@ export const INITIAL_ROOMS: RoomTypeGroup[] = [
         roomType: "Radiology",
         load: "MEDIUM",
         loadMin: 25,
-        current: { id: "N006", name: "Le Van F", type: "normal", minutesAgo: 8 },
-        queue: [{ id: "N007", name: "Hoang Van G", type: "normal" }],
+        current: { id: "N009", name: "Frank Moore", type: "normal", minutesAgo: 8 },
+        queue: [
+          { id: "N007", name: "Hoang Van G", type: "normal" },
+          { id: "M006", name: "Frank Taylor", type: "normal", status: "MISSING", isMissing: true },
+        ],
       },
     ],
   },
 ]
+
 
 // ─── Mock Notifications ───────────────────────────────────────────────────────
 

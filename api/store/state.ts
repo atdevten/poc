@@ -107,7 +107,7 @@ const defaultSettings: Settings = {
   allowVipRebalance: false,
   allowNormalRebalance: true,
   maxRebalancePerPatient: 3,
-  aiPrompt: "- Pick exactly 3 patient\n- Prefer longer wait time (fairness)\n- Prefer higher queue position number (less disruptive to move)\n- If two candidates have wait times within 5 minutes of each other, prefer the one with a more urgent or serious medical reason\n- Balance all three factors — do not pick by a single criterion blindly\n- Write a detailed and natural reason in English comparing wait times, queue position, and medical urgency (e.g., 'Although wait times are equal, Laura Davis is selected due to her urgent pre-surgery status and highest queue position, minimizing disruption to the flow of the source room')",
+  aiPrompt: "- Pick at least 2 patients\n- Prefer longer wait time (fairness)\n- Prefer higher queue position number (less disruptive to move)\n- If two candidates have wait times within 5 minutes of each other, prefer the one with a more urgent or serious medical reason\n- Balance all three factors — do not pick by a single criterion blindly\n- Write a detailed and natural reason in English comparing wait times, queue position, and medical urgency (e.g., 'Although wait times are equal, Laura Davis is selected due to her urgent pre-surgery status and highest queue position, minimizing disruption to the flow of the source room')",
   roomTypes: [
     { id: "bmi", name: "BMI Check", icon: "🏃", openTime: "08:00", closeTime: "17:00", order: 1, avgDurationMin: 5 },
     { id: "blood_test", name: "Blood Test", icon: "🩸", openTime: "08:00", closeTime: "16:00", order: 2, avgDurationMin: 12 },

@@ -1,7 +1,7 @@
 "use client"
 
 import { useRoomQueue } from "@/hooks/useRoomQueue"
-import type { PatientType, LoadLevel } from "@/lib/mock-data"
+import type { PatientType, LoadLevel, RoomPatient } from "@/lib/mock-data"
 
 function slugToRoomId(slug: string) {
   return slug.replace(/_([^_]*)$/, "-$1")
@@ -22,10 +22,88 @@ function typeIcon(type: PatientType) {
 }
 
 const loadColors: Record<LoadLevel, { bg: string; text: string; label: string }> = {
-  HIGH:   { bg: "#FEF2F2", text: "#EF4444", label: "HIGH LOAD" },
+  HIGH: { bg: "#FEF2F2", text: "#EF4444", label: "HIGH LOAD" },
   MEDIUM: { bg: "#FFFBEB", text: "#D97706", label: "MED LOAD" },
-  LOW:    { bg: "#F0FDF4", text: "#16A34A", label: "LOW LOAD" },
-  IDLE:   { bg: "#F1F5F9", text: "#94A3B8", label: "IDLE" },
+  LOW: { bg: "#F0FDF4", text: "#16A34A", label: "LOW LOAD" },
+  IDLE: { bg: "#F1F5F9", text: "#94A3B8", label: "IDLE" },
+}
+
+function MissingBadge() {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide"
+      style={{ backgroundColor: "#FFF7ED", color: "#EA580C", border: "1px solid #FDBA74" }}
+    >
+      <span
+        className="inline-block h-1.5 w-1.5 rounded-full"
+        style={{ backgroundColor: "#EA580C" }}
+      />
+      no response
+    </span>
+  )
+}
+
+function QueueRow({ patient, position }: { patient: RoomPatient; position: number }) {
+  const isNext = position === 1
+  const isMissing = patient.isMissing === true
+
+  const rowBg = isMissing
+    ? "#FFFBEB"
+    : isNext
+      ? "#F0FDF4"
+      : "#FAFAFA"
+  const rowBorder = isMissing
+    ? "1px solid #FDBA74"
+    : isNext
+      ? "1px solid #BBF7D0"
+      : "1px solid #E2E8F0"
+  const namColor = isMissing
+    ? "#92400E"
+    : isNext
+      ? "#15803D"
+      : "#0F172A"
+
+  return (
+    <div
+      className="flex items-center gap-3 rounded-xl px-4 py-3"
+      style={{ backgroundColor: rowBg, border: rowBorder }}
+    >
+      {/* Position badge */}
+      <span
+        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full font-mono text-[13px] font-semibold"
+        style={{
+          backgroundColor: isMissing ? "#FDBA74" : isNext ? "#16A34A" : "#E2E8F0",
+          color: isMissing ? "#7C2D12" : isNext ? "#FFFFFF" : "#64748B",
+        }}
+      >
+        {isMissing ? "⚠️" : position}
+      </span>
+
+      {/* Name */}
+      <p
+        className="flex-1 font-sans text-[15px] font-medium"
+        style={{ color: namColor }}
+      >
+        {patient.name}
+      </p>
+
+      {/* Right side — badges / time */}
+      <div className="flex flex-shrink-0 flex-col items-end gap-1">
+        {isMissing ? (
+          <MissingBadge />
+        ) : (
+          <>
+            {patient.waitMin !== undefined && (
+              <span className="font-mono text-[11px] text-[#94A3B8]">⏱ {patient.waitMin}m</span>
+            )}
+            {patient.estFinishMin !== undefined && (
+              <span className="font-mono text-[11px] text-[#3B82F6]">🏁 {fmtEst(patient.estFinishMin)}</span>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function RoomQueueView({ slug }: { slug: string }) {
@@ -34,9 +112,9 @@ export function RoomQueueView({ slug }: { slug: string }) {
 
   if (!room) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">
+      <div className="flex h-screen items-center justify-center bg-[#7ec6c9]">
         <div className="text-center">
-          <p className="font-mono text-[14px] text-[#94A3B8]">
+          <p className="font-mono text-[14px] text-white/80">
             {isConnected ? `Room "${roomId}" not found` : "Connecting…"}
           </p>
           <div
@@ -49,15 +127,19 @@ export function RoomQueueView({ slug }: { slug: string }) {
   }
 
   const load = loadColors[room.load]
-  const queueCount = room.queue.length
+  const activeQueue = room.queue.filter((p) => !p.isMissing)
+  const missingQueue = room.queue.filter((p) => p.isMissing)
 
   return (
-    <div className="flex h-screen flex-col bg-[#F8FAFC] px-8 py-6" style={{ fontFamily: "var(--font-dm-sans)" }}>
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+    <div
+      className="flex h-screen flex-col gap-5 bg-[#7ec6c9] px-8 py-6"
+      style={{ fontFamily: "var(--font-dm-sans)" }}
+    >
+      {/* ── Header ──────────────────────────────────────────────── */}
+      <div className="flex flex-shrink-0 items-center justify-between">
         <div>
-          <p className="font-mono text-[13px] text-[#94A3B8]">{roomLabel}</p>
-          <h1 className="text-[32px] font-semibold tracking-tight text-[#0F172A]">{room.name}</h1>
+          <p className="font-mono text-[13px] text-white/70">{roomLabel}</p>
+          <h1 className="text-[32px] font-semibold tracking-tight text-white">{room.name}</h1>
         </div>
         <div className="flex items-center gap-3">
           <span
@@ -74,104 +156,123 @@ export function RoomQueueView({ slug }: { slug: string }) {
         </div>
       </div>
 
-      <div className="flex flex-1 gap-6 overflow-hidden">
-        {/* Current patient */}
+      {/* ── In Consultation — top hero card ─────────────────────── */}
+      <div
+        className="flex-shrink-0 overflow-hidden"
+        style={{ border: "1px solid #E2E8F0", borderRadius: 16, backgroundColor: "#FFFFFF" }}
+      >
+        {/* Card header */}
         <div
-          className="flex flex-col"
-          style={{
-            width: 340,
-            border: "1px solid #E2E8F0",
-            borderRadius: 16,
-            backgroundColor: "#FFFFFF",
-            overflow: "hidden",
-            flexShrink: 0,
-          }}
+          className="flex items-center gap-2 border-b border-[#E2E8F0] px-6 py-3"
+          style={{ backgroundColor: "#F1F5F9" }}
         >
-          <div className="border-b border-[#E2E8F0] bg-[#F1F5F9] px-6 py-4">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-[#94A3B8]">← In Consultation</p>
-          </div>
+          <span
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ backgroundColor: room.current ? "#16A34A" : "#94A3B8" }}
+          />
+          <p className="font-mono text-[11px] uppercase tracking-wider text-[#94A3B8]">
+            In Consultation
+          </p>
+        </div>
 
-          {room.current ? (
-            <div className="flex flex-1 flex-col justify-center px-6 py-8">
-              <span className="mb-3 text-[40px]">{typeIcon(room.current.type)}</span>
-              <p className="text-[28px] font-semibold text-[#0F172A]">{room.current.name}</p>
-              <div className="mt-3 flex flex-col gap-1.5">
+        {room.current ? (
+          <div className="flex items-center gap-5 px-6 py-5">
+            {/* Name + meta */}
+            <div className="flex flex-1 flex-col gap-1">
+              <p className="text-[26px] font-semibold leading-tight text-[#0F172A]">
+                {room.current.name}
+              </p>
+              <div className="flex items-center gap-4">
                 {room.current.minutesAgo !== undefined && (
-                  <p className="font-mono text-[14px] text-[#94A3B8]">
+                  <span className="font-mono text-[13px] text-[#94A3B8]">
                     ⏱ {room.current.minutesAgo}m elapsed
-                  </p>
+                  </span>
                 )}
                 {room.current.estFinishMin !== undefined && (
-                  <p className="font-mono text-[14px] text-[#3B82F6]">
+                  <span className="font-mono text-[13px] text-[#3B82F6]">
                     🏁 Est. finish {fmtEst(room.current.estFinishMin)}
-                  </p>
+                  </span>
                 )}
               </div>
             </div>
-          ) : (
-            <div className="flex flex-1 items-center justify-center px-6">
-              <p className="text-center font-sans text-[15px] italic text-[#94A3B8]">Waiting for next patient</p>
-            </div>
-          )}
-        </div>
 
-        {/* Queue */}
+            {/* "Now" pill */}
+            <span
+              className="flex-shrink-0 rounded-full px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wide"
+              style={{ backgroundColor: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0" }}
+            >
+              Now
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center px-6 py-8">
+            <p className="font-sans text-[15px] italic text-[#94A3B8]">Waiting for next patient</p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Queue lists (Active & Missing) ──────────────────────── */}
+      <div className="flex flex-1 gap-5 overflow-hidden">
+        {/* Active Queue Card */}
         <div
-          className="flex flex-1 flex-col overflow-hidden"
-          style={{
-            border: "1px solid #E2E8F0",
-            borderRadius: 16,
-            backgroundColor: "#FFFFFF",
-          }}
+          className="flex flex-[2] flex-col overflow-hidden"
+          style={{ border: "1px solid #E2E8F0", borderRadius: 16, backgroundColor: "#FFFFFF" }}
         >
-          <div className="border-b border-[#E2E8F0] bg-[#F1F5F9] px-6 py-4">
+          {/* Queue header */}
+          <div className="flex flex-shrink-0 items-center justify-between border-b border-[#E2E8F0] bg-[#F1F5F9] px-6 py-3">
             <p className="font-mono text-[11px] uppercase tracking-wider text-[#94A3B8]">
-              Queue · <span style={{ color: queueCount > 0 ? "#0F172A" : "#94A3B8" }}>{queueCount}</span>
+              Queue ·{" "}
+              <span style={{ color: activeQueue.length > 0 ? "#0F172A" : "#94A3B8" }}>{activeQueue.length}</span>
             </p>
           </div>
 
+          {/* Scrollable queue rows */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
-            {queueCount === 0 ? (
+            {activeQueue.length === 0 ? (
               <div className="flex h-full items-center justify-center">
                 <p className="font-sans text-[15px] italic text-[#94A3B8]">No patients waiting</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
-                {room.queue.map((p, i) => (
-                  <div
-                    key={`${p.id}-${i}`}
-                    className="flex items-center gap-4 rounded-xl px-4 py-4"
-                    style={{
-                      backgroundColor: i === 0 ? "#F0FDF4" : "#F8FAFC",
-                      border: `1px solid ${i === 0 ? "#BBF7D0" : "#E2E8F0"}`,
-                    }}
-                  >
-                    <span
-                      className="flex h-8 w-8 items-center justify-center rounded-full font-mono text-[14px] font-semibold"
-                      style={{
-                        backgroundColor: i === 0 ? "#16A34A" : "#E2E8F0",
-                        color: i === 0 ? "#FFFFFF" : "#64748B",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {i + 1}
-                    </span>
-                    <span className="text-[20px] flex-shrink-0">{typeIcon(p.type)}</span>
-                    <p
-                      className="flex-1 text-[17px] font-medium"
-                      style={{ color: i === 0 ? "#15803D" : "#0F172A" }}
-                    >
-                      {p.name}
-                    </p>
-                    <div className="flex flex-col items-end gap-1">
-                      {p.waitMin !== undefined && (
-                        <span className="font-mono text-[12px] text-[#94A3B8]">⏱ {p.waitMin}m wait</span>
-                      )}
-                      {p.estFinishMin !== undefined && (
-                        <span className="font-mono text-[12px] text-[#3B82F6]">🏁 {fmtEst(p.estFinishMin)}</span>
-                      )}
-                    </div>
-                  </div>
+              <div className="flex flex-col gap-2.5">
+                {activeQueue.map((p, i) => (
+                  <QueueRow key={`${p.id}-${i}`} patient={p} position={i + 1} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Missing Patients Card */}
+        <div
+          className="flex flex-1 flex-col overflow-hidden"
+          style={{ border: "1px solid #E2E8F0", borderRadius: 16, backgroundColor: "#FFFFFF" }}
+        >
+          {/* Missing header */}
+          <div className="flex flex-shrink-0 items-center justify-between border-b border-[#E2E8F0] bg-[#F1F5F9] px-6 py-3">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-[#94A3B8]">
+              Patient not present ·{" "}
+              <span style={{ color: missingQueue.length > 0 ? "#EA580C" : "#94A3B8" }}>{missingQueue.length}</span>
+            </p>
+            {missingQueue.length > 0 && (
+              <span
+                className="flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[11px] font-semibold"
+                style={{ backgroundColor: "#FFF7ED", color: "#EA580C", border: "1px solid #FDBA74" }}
+              >
+                ⚠ {missingQueue.length} no response
+              </span>
+            )}
+          </div>
+
+          {/* Scrollable missing rows */}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            {missingQueue.length === 0 ? (
+              <div className="flex h-full items-center justify-center">
+                <p className="font-sans text-[15px] italic text-[#94A3B8]">No missing patients</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {missingQueue.map((p, i) => (
+                  <QueueRow key={`${p.id}-${i}`} patient={p} position={0} />
                 ))}
               </div>
             )}
@@ -179,10 +280,10 @@ export function RoomQueueView({ slug }: { slug: string }) {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="mt-4 flex items-center justify-between">
-        <p className="font-mono text-[11px] text-[#CBD5E1]">/{slug}</p>
-        <p className="font-mono text-[11px] text-[#CBD5E1]">
+      {/* ── Footer ──────────────────────────────────────────────── */}
+      <div className="flex flex-shrink-0 items-center justify-between">
+        <p className="font-mono text-[11px] text-white/60">/{slug}</p>
+        <p className="font-mono text-[11px] text-white/60">
           {room.loadMin > 0 ? `Est. wait: ${room.loadMin}m` : "No wait"}
         </p>
       </div>

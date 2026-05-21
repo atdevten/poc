@@ -180,27 +180,47 @@ export function RoomCard({ room, onDone, assignmentMode, pendingSuggestion, onAc
         {room.queue.length === 0 ? (
           <p className="font-sans text-[12px] italic text-[#94A3B8]">No patients waiting</p>
         ) : (
-          <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
             {room.queue.slice(0, 5).map((p, i) => {
               const isSuggested = pendingSuggestion?.patientId === p.id
+              const isMissing = p.isMissing === true
               return (
                 <div key={`${p.id}-${i}`} className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
+                  <div
+                    className="flex items-center gap-2 rounded-lg px-2 py-1"
+                    style={isMissing ? { backgroundColor: "#FFF7ED", border: "1px solid #FDBA74" } : undefined}
+                  >
                     <span className="w-4 font-mono text-[11px] text-[#94A3B8]">{i + 1}.</span>
                     <span className="text-[12px]">{typeIcon(p.type)}</span>
-                    <span className={cn("font-sans text-[12px]", isSuggested ? "font-medium text-[#D97706]" : "text-[#64748B]")}>
+                    <span
+                      className={cn(
+                        "font-sans text-[12px]",
+                        isMissing
+                          ? "font-medium text-[#92400E]"
+                          : isSuggested
+                            ? "font-medium text-[#D97706]"
+                            : "text-[#64748B]",
+                      )}
+                    >
                       {p.name}
                     </span>
                     <span className="ml-auto font-mono text-[10px] text-[#94A3B8] flex gap-2">
-                      {isSuggested
-                        ? <span className="rounded bg-[#FEF3C7] px-1.5 py-0.5 text-[#D97706]">⚡ AI</span>
-                        : (
-                          <>
-                            {p.waitMin !== undefined && <span>⏱ {p.waitMin}m</span>}
-                            {p.estFinishMin !== undefined && <span>🏁 {fmtEst(p.estFinishMin)}</span>}
-                          </>
-                        )
-                      }
+                      {isMissing ? (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase"
+                          style={{ backgroundColor: "#FFF7ED", color: "#EA580C", border: "1px solid #FDBA74" }}
+                        >
+                          <span className="inline-block h-1 w-1 rounded-full" style={{ backgroundColor: "#EA580C" }} />
+                          Missing
+                        </span>
+                      ) : isSuggested ? (
+                        <span className="rounded bg-[#FEF3C7] px-1.5 py-0.5 text-[#D97706]">⚡ AI</span>
+                      ) : (
+                        <>
+                          {p.waitMin !== undefined && <span>⏱ {p.waitMin}m</span>}
+                          {p.estFinishMin !== undefined && <span>🏁 {fmtEst(p.estFinishMin)}</span>}
+                        </>
+                      )}
                     </span>
                   </div>
                   {isSuggested && pendingSuggestion && assignmentMode === "suggest" && (
