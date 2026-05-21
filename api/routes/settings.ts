@@ -32,6 +32,12 @@ app.post("/rebalance/apply", async (c) => {
   return c.json({ success: true, log: result.log })
 })
 
+app.post("/gemini/enabled", async (c) => {
+  const { enabled } = await c.req.json<{ enabled: boolean }>()
+  state.geminiEnabled = enabled
+  return c.json({ geminiEnabled: state.geminiEnabled })
+})
+
 app.post("/reset", (c) => {
   resetState()
   // Push full snapshot to all connected clients

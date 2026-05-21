@@ -94,6 +94,7 @@ export interface AppState {
   lobby: Patient[]
   settings: Settings
   logs: RebalanceLog[]
+  geminiEnabled: boolean
 }
 
 // ─── Seed data ────────────────────────────────────────────────────────────────
@@ -291,6 +292,7 @@ export const state: AppState = {
   lobby: [],
   settings: defaultSettings,
   logs: [],
+  geminiEnabled: true,
 }
 
 export function resetState(): void {
@@ -299,6 +301,7 @@ export function resetState(): void {
   state.lobby.length = 0
   state.logs.length = 0
   state.settings = { ...defaultSettings }
+  state.geminiEnabled = true
 
   for (const [id, room] of seedRooms(defaultSettings)) {
     state.rooms.set(id, room)

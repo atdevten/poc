@@ -63,7 +63,7 @@ export async function tryRebalance(
   })
   if (candidates.length === 0) return { applied: false }
 
-  const { selectedId, reason, aiUsed } = hasActiveConnections()
+  const { selectedId, reason, aiUsed } = (hasActiveConnections() && state.geminiEnabled)
     ? await selectCandidate(candidates, overloadedRoom, destRoom, settings.rebalanceThresholdMin)
     : { selectedId: candidates[0].id, reason: "Auto-selected longest-waiting patient", aiUsed: false }
 
@@ -165,7 +165,7 @@ export async function tryBatchRebalance(
 
   let assignments: Array<{ pairIdx: number; selectedId: string; reason: string; aiUsed: boolean }>
 
-  if (hasActiveConnections() && pairs.some((p) => p.candidates.length >= 2)) {
+  if (hasActiveConnections() && state.geminiEnabled && pairs.some((p) => p.candidates.length >= 2)) {
     const batchPairs: BatchPair[] = pairs.map((p, i) => ({
       pairId: String(i),
       sourceRoom: p.sourceRoom,
