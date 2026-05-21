@@ -87,21 +87,12 @@ function QueueRow({ patient, position }: { patient: RoomPatient; position: numbe
         {patient.name}
       </p>
 
-      {/* Right side — badges / time */}
-      <div className="flex flex-shrink-0 flex-col items-end gap-1">
-        {isMissing ? (
+      {/* Right side — badge */}
+      {isMissing && (
+        <div className="flex flex-shrink-0 flex-col items-end gap-1">
           <MissingBadge />
-        ) : (
-          <>
-            {patient.waitMin !== undefined && (
-              <span className="font-mono text-[11px] text-[#94A3B8]">⏱ {patient.waitMin}m</span>
-            )}
-            {patient.estFinishMin !== undefined && (
-              <span className="font-mono text-[11px] text-[#3B82F6]">🏁 {fmtEst(patient.estFinishMin)}</span>
-            )}
-          </>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -177,23 +168,16 @@ export function RoomQueueView({ slug }: { slug: string }) {
 
         {room.current ? (
           <div className="flex items-center gap-5 px-6 py-5">
-            {/* Name + meta */}
-            <div className="flex flex-1 flex-col gap-1">
+            {/* Name + elapsed */}
+            <div className="flex flex-1 items-baseline gap-3">
               <p className="text-[26px] font-semibold leading-tight text-[#0F172A]">
                 {room.current.name}
               </p>
-              <div className="flex items-center gap-4">
-                {room.current.minutesAgo !== undefined && (
-                  <span className="font-mono text-[13px] text-[#94A3B8]">
-                    ⏱ {room.current.minutesAgo}m elapsed
-                  </span>
-                )}
-                {room.current.estFinishMin !== undefined && (
-                  <span className="font-mono text-[13px] text-[#3B82F6]">
-                    🏁 Est. finish {fmtEst(room.current.estFinishMin)}
-                  </span>
-                )}
-              </div>
+              {room.current.minutesAgo !== undefined && (
+                <span className="font-mono text-[16px] text-[#94A3B8]">
+                  {room.current.minutesAgo}m elapsed
+                </span>
+              )}
             </div>
 
             {/* "Now" pill */}
